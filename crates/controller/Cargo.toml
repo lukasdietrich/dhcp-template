@@ -1,0 +1,12 @@
+[package]
+name = "controller"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+env_logger = { workspace = true }
+k8s-openapi = { workspace = true, features = ["latest", "schemars"] }
+kube = { workspace = true, features = ["runtime", "derive"] }
+log = { workspace = true }
+schemars = { workspace = true }
