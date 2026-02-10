@@ -1,0 +1,20 @@
+[package]
+name = "dhcp-template-agent"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+dhcp-template-api = { workspace = true }
+dhcproto = "0.14.0"
+env_logger = { workspace = true }
+envconfig = { workspace = true }
+log = { workspace = true }
+prost = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }
+tonic-prost = { workspace = true }
+
+[build-dependencies]
+tonic-prost-build = { workspace = true }

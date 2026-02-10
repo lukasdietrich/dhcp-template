@@ -1,12 +1,19 @@
 [package]
-name = "controller"
+name = "dhcp-template-operator"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
+dhcp-template-api = { workspace = true }
+dhcp-template-crd = { workspace = true }
 env_logger = { workspace = true }
 k8s-openapi = { workspace = true, features = ["latest", "schemars"] }
 kube = { workspace = true, features = ["runtime", "derive"] }
 log = { workspace = true }
 schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }

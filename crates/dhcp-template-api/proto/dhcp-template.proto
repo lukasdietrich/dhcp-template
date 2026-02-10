@@ -1,0 +1,34 @@
+syntax = "proto3";
+package dhcp_template;
+
+service AgentService {
+  rpc GetNode(Empty) returns (Node);
+}
+
+message Empty {}
+
+message Node {
+  string name = 1;
+  repeated Interface interfaces = 2;
+}
+
+message Interface {
+  string name = 1;
+  optional Lease4 lease4 = 2;
+  optional Lease6 lease6 = 3;
+}
+
+message Lease4 {
+  repeated string dns = 1;
+  optional string domain = 2;
+}
+
+message Lease6 {
+  repeated string dns = 1;
+  repeated Prefix6 prefix6 = 2;
+}
+
+message Prefix6 {
+  string ip = 1;
+  uint32 len = 2;
+}
