@@ -1,34 +1,39 @@
-use anyhow::Context;
-use dhcp_template_api::{Empty, agent_service_client::AgentServiceClient};
-use dhcp_template_crd::DHCPTemplate;
-use kube::{Api, Client, api::ListParams};
+mod nodes;
+mod service;
+
+use std::net::SocketAddr;
+
+use dhcp_template_api::controller_service_server::ControllerServiceServer;
+use envconfig::Envconfig;
 use log::{LevelFilter, info};
-use tonic::Request;
+use tonic::transport::Server;
+
+use crate::{nodes::Nodes, service::ControllerService};
+
+#[derive(Envconfig)]
+struct Config {
+    #[envconfig(from = "DHCP_TEMPLATE__ADDR", default = "[::1]:50051")]
+    addr: SocketAddr,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::builder()
-        .filter_level(LevelFilter::Debug)
+        .filter_level(LevelFilter::Info)
+        .filter_module("dhcp_template_operator", LevelFilter::Debug)
         .init();
 
-    let client = Client::try_default()
-        .await
-        .context("Could not connect to kubernetes")?;
+    let config = Config::init_from_env()?;
+    let nodes = Nodes::init();
 
-    let templates = Api::<DHCPTemplate>::all(client);
-    let params = ListParams::default();
+    let controller_service = ControllerService { nodes };
 
-    for template in templates
-        .list(&params)
-        .await
-        .context("Could not fetch templates")?
-    {
-        info!("bla {:?}", template);
-    }
+    info!("Listening on {}", &config.addr);
 
-    let mut agent_service = AgentServiceClient::connect("http://[::1]:50051").await?;
-    let response = agent_service.get_node(Request::new(Empty {})).await?;
-    info!("response {:#?}", response);
+    Server::builder()
+        .add_service(ControllerServiceServer::new(controller_service))
+        .serve(config.addr)
+        .await?;
 
     Ok(())
 }

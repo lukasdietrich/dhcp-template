@@ -1,15 +1,30 @@
 syntax = "proto3";
 package dhcp_template;
 
-service AgentService {
-  rpc GetNode(Empty) returns (Node);
+service ControllerService {
+  // Push state of the node to the controller.
+  rpc PushNode(Node) returns (Refresh);
 }
 
-message Empty {}
+enum Scope {
+  // Omit interfaces and only send the last pushed token.
+  SHALLOW = 0;
+  // Push the current state of the node.
+  FULL = 1;
+}
+
+message Refresh {
+  // The agent should not push sooner than backoff_seconds, unless the state changes.
+  uint64 backoff_seconds = 1;
+  // The agent must push with the given scope in the next iteration.
+  Scope scope = 2;
+}
 
 message Node {
   string name = 1;
-  repeated Interface interfaces = 2;
+  Scope scope = 2;
+  uint64 token = 3;
+  repeated Interface interfaces = 4;
 }
 
 message Interface {

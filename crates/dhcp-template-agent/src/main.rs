@@ -1,44 +1,31 @@
-use std::net::SocketAddr;
+mod agent;
+mod provider;
 
-use anyhow::Result;
-use dhcp_template_api::agent_service_server::AgentServiceServer;
+use anyhow::{Context, Result};
 use envconfig::Envconfig;
-use log::{LevelFilter, info};
-use tonic::transport::Server;
+use log::LevelFilter;
 
-use crate::{service::AgentService, source::dhcpcd::DhcpcdSource};
-
-mod service;
-mod source;
+use crate::agent::Agent;
 
 #[derive(Envconfig)]
 struct Config {
-    #[envconfig(from = "DHCP_TEMPLATE__NODE_NAME", default = "localhost")]
-    node_name: String,
+    #[envconfig(nested)]
+    agent: agent::Config,
 
-    #[envconfig(from = "DHCP_TEMPLATE__ADDR", default = "[::1]:50051")]
-    addr: SocketAddr,
+    #[envconfig(nested)]
+    provider: provider::Config,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::builder()
-        .filter_level(LevelFilter::Debug)
+        .filter_level(LevelFilter::Info)
+        .filter_module(module_path!(), LevelFilter::Debug)
         .init();
 
-    let Config { node_name, addr } = Config::init_from_env()?;
+    let config = Config::init_from_env().context("Could not parse agent config.")?;
+    let agent = Agent::from(config.agent);
+    let provider = config.provider.into();
 
-    let agent_service = AgentService {
-        node_name: node_name.clone(),
-        source: Box::new(DhcpcdSource::init_from_env()?),
-    };
-
-    info!("Listening on {:?} for node {:?}", &addr, &node_name);
-
-    Server::builder()
-        .add_service(AgentServiceServer::new(agent_service))
-        .serve(addr)
-        .await?;
-
-    Ok(())
+    agent.push_node(provider).await
 }

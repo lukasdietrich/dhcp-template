@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, fs, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{Context, Result, anyhow};
 use async_trait::async_trait;
@@ -7,20 +11,30 @@ use dhcproto::{Decodable, v4, v6};
 use envconfig::Envconfig;
 use log::info;
 
-use crate::source::Source;
+use crate::provider::notify::{InterfaceReader, NotifyProvider};
 
-#[derive(Debug, Envconfig)]
-pub struct DhcpcdSource {
+#[derive(Envconfig)]
+pub struct Config {
     #[envconfig(from = "DHCP_TEMPLATE__DHCPCD_PATH", default = "/var/lib/dhcpcd")]
     path: PathBuf,
 }
 
-#[async_trait]
-impl Source for DhcpcdSource {
-    async fn get_node(&self) -> Result<Vec<Interface>> {
-        info!("Reading lease files in {:?}", self.path);
+pub type DhcpcdProvider = NotifyProvider<DhcpcdInterfaceReader>;
 
-        let lease_files = fs::read_dir(&self.path)?
+impl From<Config> for DhcpcdProvider {
+    fn from(Config { path }: Config) -> Self {
+        Self::new(path)
+    }
+}
+
+pub struct DhcpcdInterfaceReader;
+
+#[async_trait]
+impl InterfaceReader for DhcpcdInterfaceReader {
+    async fn read_interfaces(path: &Path) -> Result<Vec<Interface>> {
+        info!("Reading lease files in {:?}", path);
+
+        let lease_files = fs::read_dir(path)?
             .flatten()
             .map(|entry| entry.path())
             .filter(|path| is_lease4_file(path) || is_lease6_file(path));
@@ -62,7 +76,7 @@ impl Source for DhcpcdSource {
 }
 
 fn decode_v4(bytes: &[u8]) -> Result<Lease4> {
-    let mut decoder = v4::Decoder::new(&bytes);
+    let mut decoder = v4::Decoder::new(bytes);
 
     let message = v4::Message::decode(&mut decoder).context("could not decode dhcpv4 message")?;
     let options = message.opts();
@@ -84,7 +98,7 @@ fn decode_v4(bytes: &[u8]) -> Result<Lease4> {
 }
 
 fn decode_v6(bytes: &[u8]) -> Result<Lease6> {
-    let mut decoder = v6::Decoder::new(&bytes);
+    let mut decoder = v6::Decoder::new(bytes);
 
     let message = v6::Message::decode(&mut decoder).context("could not decode dhcpv6 message")?;
     let options = message.opts();
@@ -106,7 +120,7 @@ fn decode_v6(bytes: &[u8]) -> Result<Lease6> {
                     ..
                 })) => vec![Prefix6 {
                     ip: prefix_ip.to_string(),
-                    len: prefix_len.clone() as u32,
+                    len: *prefix_len as u32,
                 }],
                 _ => vec![],
             }
@@ -117,12 +131,12 @@ fn decode_v6(bytes: &[u8]) -> Result<Lease6> {
     Ok(Lease6 { dns, prefix6 })
 }
 
-fn is_lease4_file(path: &PathBuf) -> bool {
+fn is_lease4_file(path: &Path) -> bool {
     path.extension()
         .is_some_and(|ext| matches!(ext.to_str(), Some("lease")))
 }
 
-fn is_lease6_file(path: &PathBuf) -> bool {
+fn is_lease6_file(path: &Path) -> bool {
     path.extension()
         .is_some_and(|ext| matches!(ext.to_str(), Some("lease6")))
 }
