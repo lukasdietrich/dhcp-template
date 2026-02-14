@@ -3,11 +3,11 @@ mod provider;
 
 use anyhow::{Context, Result};
 use envconfig::Envconfig;
-use log::LevelFilter;
+use log::{LevelFilter, debug};
 
 use crate::agent::Agent;
 
-#[derive(Envconfig)]
+#[derive(Debug, Envconfig)]
 struct Config {
     #[envconfig(nested)]
     agent: agent::Config,
@@ -24,6 +24,8 @@ async fn main() -> Result<()> {
         .init();
 
     let config = Config::init_from_env().context("Could not parse agent config.")?;
+    debug!("{:#?}", config);
+
     let agent = Agent::from(config.agent);
     let provider = config.provider.into();
 

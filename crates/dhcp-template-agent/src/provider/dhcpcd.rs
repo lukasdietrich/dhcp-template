@@ -13,7 +13,7 @@ use log::info;
 
 use crate::provider::notify::{InterfaceReader, NotifyProvider};
 
-#[derive(Envconfig)]
+#[derive(Debug, Envconfig)]
 pub struct Config {
     #[envconfig(from = "DHCP_TEMPLATE__DHCPCD_PATH", default = "/var/lib/dhcpcd")]
     path: PathBuf,

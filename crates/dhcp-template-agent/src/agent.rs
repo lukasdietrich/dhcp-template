@@ -11,7 +11,7 @@ use tonic::{Request, transport::Uri};
 
 use crate::provider::Provider;
 
-#[derive(Envconfig)]
+#[derive(Debug, Envconfig)]
 pub struct Config {
     #[envconfig(from = "DHCP_TEMPLATE__NODE_NAME")]
     node_name: Option<String>,

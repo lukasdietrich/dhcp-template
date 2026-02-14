@@ -10,16 +10,16 @@ use strum::{Display, EnumString};
 
 use crate::provider::dhcpcd::DhcpcdProvider;
 
-#[derive(Display, EnumString)]
+#[derive(Debug, Display, EnumString)]
 #[strum(ascii_case_insensitive, serialize_all = "snake_case")]
-enum Providers {
+enum Implementation {
     Dhcpcd,
 }
 
-#[derive(Envconfig)]
+#[derive(Debug, Envconfig)]
 pub struct Config {
     #[envconfig(from = "DHCP_TEMPLATE__PROVIDER", default = "dhcpcd")]
-    provider: Providers,
+    implementation: Implementation,
 
     #[envconfig(nested)]
     dhcpcd: dhcpcd::Config,
@@ -34,10 +34,10 @@ where
 
 impl From<Config> for Box<dyn Provider> {
     fn from(config: Config) -> Self {
-        debug!("Creating provider {}.", config.provider);
+        debug!("Creating provider {}.", config.implementation);
 
-        Box::new(match config.provider {
-            Providers::Dhcpcd => DhcpcdProvider::from(config.dhcpcd),
+        Box::new(match config.implementation {
+            Implementation::Dhcpcd => DhcpcdProvider::from(config.dhcpcd),
         })
     }
 }
