@@ -1,37 +1,34 @@
-use std::{
-    marker::PhantomData,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use async_stream::stream;
 use async_trait::async_trait;
 use dhcp_template_api::Interface;
-use dhcp_template_stream::boxed::{BoxStream, BoxStreamExt};
+use futures_time::{stream::StreamExt as _, time::Duration};
+use futures_util::{
+    Stream, StreamExt as _, TryStreamExt,
+    future::{Ready, ready},
+    stream::{BoxStream, once},
+};
 use log::debug;
 use notify::{Event, EventKind, RecursiveMode, Watcher, recommended_watcher};
 use tokio::sync::mpsc::channel;
-use tokio_stream::{Stream, StreamExt, once};
 
 use crate::provider::Provider;
 
 #[async_trait]
 pub trait InterfaceReader {
-    async fn read_interfaces(path: &Path) -> Result<Vec<Interface>>;
+    async fn interfaces(&self, path: &Path) -> Result<Vec<Interface>>;
 }
 
 pub struct NotifyProvider<R> {
     path: PathBuf,
-    reader: PhantomData<R>,
+    reader: R,
 }
 
 impl<R> NotifyProvider<R> {
-    pub fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            reader: PhantomData,
-        }
+    pub fn new(path: PathBuf, reader: R) -> Self {
+        Self { path, reader }
     }
 }
 
@@ -40,26 +37,31 @@ where
     R: InterfaceReader + Sync + Send,
 {
     fn interfaces<'a>(&'a self) -> BoxStream<'a, Result<Vec<Interface>>> {
-        let initial = once(Ok(vec![]));
-
-        let file_changes = watch_path(&self.path)
-            .chunks_timeout(64, Duration::from_secs(5))
-            .map(|events| events.into_iter().collect::<Result<Vec<_>>>());
+        let initial = once(async { Ok(Event::new(EventKind::Other)) });
+        let changes = watch_path(&self.path)
+            .try_filter(is_relevant_event)
+            .into_stream()
+            .debounce(Duration::from_secs(10))
+            .inspect_ok(|_| debug!("Change on filesystem detected, reloading interfaces."));
 
         initial
-            .chain(file_changes)
-            .then(async |res| match res {
-                Ok(_) => R::read_interfaces(&self.path).await,
-                Err(err) => Err(err),
-            })
+            .chain(changes)
+            .and_then(async |_| self.reader.interfaces(&self.path).await)
             .boxed()
     }
 }
 
-fn watch_path(path: &Path) -> impl Stream<Item = Result<Event>> {
-    stream! {
-        let (tx, mut rx) = channel(64);
+fn is_relevant_event(event: &Event) -> Ready<bool> {
+    ready(matches!(
+        event.kind,
+        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
+    ))
+}
 
+fn watch_path(path: &Path) -> impl Stream<Item = Result<Event>> {
+    let (tx, mut rx) = channel(64);
+
+    stream! {
         let mut watcher = recommended_watcher(move |res| {
             tx.blocking_send(res)
                 .expect("Could not send watcher event to channel!");
@@ -72,18 +74,7 @@ fn watch_path(path: &Path) -> impl Stream<Item = Result<Event>> {
         debug!("Watching {:?} for changes.", path);
 
         while let Some(res) = rx.recv().await {
-            let event = res?;
-
-            if is_releant_event(&event) {
-                yield Ok(event);
-            }
+            yield Ok(res?);
         }
     }
-}
-
-fn is_releant_event(event: &Event) -> bool {
-    matches!(
-        event.kind,
-        EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
-    )
 }

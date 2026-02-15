@@ -8,14 +8,14 @@ anyhow = { workspace = true }
 async-stream = "0.3.6"
 async-trait = { workspace = true }
 dhcp-template-api = { workspace = true }
-dhcp-template-stream = { workspace = true }
 dhcproto = "0.14.0"
 env_logger = { workspace = true }
 envconfig = { workspace = true }
+futures-time = { workspace = true }
+futures-util = { workspace = true }
 log = { workspace = true }
 notify = "8.2.0"
 rand = "0.10.0"
 strum = { workspace = true }
 tokio = { workspace = true }
-tokio-stream = { workspace = true }
 tonic = { workspace = true }

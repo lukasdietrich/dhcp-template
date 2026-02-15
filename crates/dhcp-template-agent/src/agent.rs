@@ -2,11 +2,10 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow, bail};
 use dhcp_template_api::{Node, Scope, controller_service_client::ControllerServiceClient};
-use dhcp_template_stream::result::ResultStreamExt;
 use envconfig::Envconfig;
+use futures_util::{TryStream, TryStreamExt};
 use log::debug;
 use tokio::{select, time::sleep};
-use tokio_stream::{Stream, StreamExt};
 use tonic::{Request, transport::Uri};
 
 use crate::provider::Provider;
@@ -61,7 +60,7 @@ impl Agent {
             .ok_or_else(|| anyhow!("Could not get initial node state."))?;
 
         loop {
-            debug!("Sending current state: Scope = {:?}.", scope);
+            debug!("Sending current {} state.", scope.as_str_name());
 
             let request = Request::new(match scope {
                 Scope::Shallow => shallow_clone(&node),
@@ -75,13 +74,13 @@ impl Agent {
 
             select! {
                _ = sleep(Duration::from_secs(refresh.backoff_seconds)) => {
-                   debug!("Backoff duration has passed: {}s", refresh.backoff_seconds);
+                   debug!("Backoff duration of {}s has passed.", refresh.backoff_seconds);
                }
 
                result = node_stream.try_next() => {
                    match result? {
                        Some(next) => {
-                           debug!("Received new state.");
+                           debug!("Interfaces changed.");
                            scope = Scope::Full;
                            node = next;
                        },
@@ -94,8 +93,11 @@ impl Agent {
         }
     }
 
-    fn get_node(&self, provider: &dyn Provider) -> impl Stream<Item = Result<Node>> {
-        provider.interfaces().try_map(|interfaces| Node {
+    fn get_node(
+        &self,
+        provider: &dyn Provider,
+    ) -> impl TryStream<Ok = Node, Error = anyhow::Error> {
+        provider.interfaces().map_ok(|interfaces| Node {
             name: self.node_name.clone(),
             scope: Scope::Full.into(),
             token: rand::random(),

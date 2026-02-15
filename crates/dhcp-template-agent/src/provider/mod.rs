@@ -3,8 +3,8 @@ mod notify;
 
 use anyhow::Result;
 use dhcp_template_api::Interface;
-use dhcp_template_stream::boxed::BoxStream;
 use envconfig::Envconfig;
+use futures_util::stream::BoxStream;
 use log::debug;
 use strum::{Display, EnumString};
 
@@ -32,12 +32,16 @@ where
     fn interfaces<'a>(&'a self) -> BoxStream<'a, Result<Vec<Interface>>>;
 }
 
-impl From<Config> for Box<dyn Provider> {
-    fn from(config: Config) -> Self {
+impl TryFrom<Config> for Box<dyn Provider> {
+    type Error = anyhow::Error;
+
+    fn try_from(config: Config) -> Result<Self, Self::Error> {
         debug!("Creating provider {}.", config.implementation);
 
-        Box::new(match config.implementation {
-            Implementation::Dhcpcd => DhcpcdProvider::from(config.dhcpcd),
-        })
+        let provider = Box::new(match config.implementation {
+            Implementation::Dhcpcd => DhcpcdProvider::try_from(config.dhcpcd)?,
+        });
+
+        Ok(provider)
     }
 }

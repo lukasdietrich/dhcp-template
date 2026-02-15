@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
     debug!("{:#?}", config);
 
     let agent = Agent::from(config.agent);
-    let provider = config.provider.into();
+    let provider = config.provider.try_into()?;
 
     agent.push_node(provider).await
 }
