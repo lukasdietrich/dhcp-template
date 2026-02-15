@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow, bail};
-use dhcp_template_api::{Node, Scope, controller_service_client::ControllerServiceClient};
+use dhcp_template_api::{Node, Refresh, Scope, controller_service_client::ControllerServiceClient};
 use envconfig::Envconfig;
 use futures_util::{TryStream, TryStreamExt};
 use log::debug;
@@ -46,43 +46,30 @@ fn random_node_name() -> String {
 }
 
 impl Agent {
-    pub async fn push_node(&self, provider: Box<dyn Provider>) -> Result<()> {
-        let mut controller_service = ControllerServiceClient::connect(self.endpoint.clone())
-            .await
-            .context("Could not connect to controller.")?;
+    pub async fn run(&self, provider: Box<dyn Provider>) -> Result<()> {
+        let mut updates = self.get_node(&*provider);
 
-        let mut node_stream = self.get_node(&*provider);
-
-        let mut scope = Scope::Full;
-        let mut node = node_stream
+        let mut refresh = Refresh::default();
+        let mut node = updates
             .try_next()
             .await?
             .ok_or_else(|| anyhow!("Could not get initial node state."))?;
 
         loop {
-            debug!("Sending current {} state.", scope.as_str_name());
-
-            let request = Request::new(match scope {
-                Scope::Shallow => shallow_clone(&node),
-                Scope::Full => node.clone(),
-            });
-
-            let response = controller_service.push_node(request).await?;
-            let refresh = response.into_inner();
-
-            scope = refresh.scope();
+            debug!("Sending current {} state.", refresh.scope().as_str_name());
+            refresh = self.push_node(&node, refresh.scope()).await?;
 
             select! {
                _ = sleep(Duration::from_secs(refresh.backoff_seconds)) => {
                    debug!("Backoff duration of {}s has passed.", refresh.backoff_seconds);
                }
 
-               result = node_stream.try_next() => {
+               result = updates.try_next() => {
                    match result? {
                        Some(next) => {
                            debug!("Interfaces changed.");
-                           scope = Scope::Full;
                            node = next;
+                           refresh.set_scope(Scope::Full);
                        },
                        None => {
                            bail!("Provider closed!");
@@ -91,6 +78,22 @@ impl Agent {
                }
             }
         }
+    }
+
+    async fn push_node(&self, node: &Node, scope: Scope) -> Result<Refresh> {
+        let mut controller_service = ControllerServiceClient::connect(self.endpoint.clone())
+            .await
+            .context("Could not connect to controller.")?;
+
+        let request = Request::new(match scope {
+            Scope::Shallow => shallow_clone(&node),
+            Scope::Full => node.clone(),
+        });
+
+        let response = controller_service.push_node(request).await?;
+        let refresh = response.into_inner();
+
+        Ok(refresh)
     }
 
     fn get_node(

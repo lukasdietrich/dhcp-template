@@ -29,5 +29,5 @@ async fn main() -> Result<()> {
     let agent = Agent::from(config.agent);
     let provider = config.provider.try_into()?;
 
-    agent.push_node(provider).await
+    agent.run(provider).await
 }

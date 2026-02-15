@@ -114,7 +114,7 @@ mod v4 {
     }
 
     fn get_dns(options: &DhcpOptions) -> Vec<String> {
-        if let Some(DhcpOption::DomainNameServer(dns)) = options.get(OptionCode::DomainName) {
+        if let Some(DhcpOption::DomainNameServer(dns)) = options.get(OptionCode::DomainNameServer) {
             dns.iter().map(|addr| addr.to_string()).collect()
         } else {
             Default::default()
@@ -170,7 +170,7 @@ mod v6 {
                     None
                 }
             })
-            .map(|dns| dns.iter().map(|addr| addr.to_string()).collect())
+            .flat_map(|dns| dns.iter().map(|addr| addr.to_string()))
             .collect()
     }
 
