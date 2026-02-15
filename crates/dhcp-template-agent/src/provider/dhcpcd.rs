@@ -46,9 +46,9 @@ impl InterfaceReader for DhcpcdInterfaceReader {
         let mut interfaces = BTreeMap::new();
 
         for lease_file in lease_files {
-            info!("Reading lease file {:?}", lease_file);
+            info!("Reading lease file {:?}.", lease_file);
 
-            let name = file_base_name(&path)
+            let name = file_base_name(&lease_file)
                 .ok_or_else(|| anyhow!("Could not extract base name from path {:?}.", &path))?;
 
             let interface = interfaces.entry(name.clone()).or_insert(Interface {
@@ -186,8 +186,7 @@ mod v6 {
                     None
                 }
             })
-            .map(|iapd| iapd.opts.get_all(OptionCode::IAPrefix))
-            .flatten()
+            .filter_map(|iapd| iapd.opts.get_all(OptionCode::IAPrefix))
             .flatten()
             .filter_map(|option| {
                 if let DhcpOption::IAPrefix(iaprefix) = option {
