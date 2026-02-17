@@ -5,8 +5,8 @@ use anyhow::Result;
 use dhcp_template_api::Interface;
 use envconfig::Envconfig;
 use futures_util::stream::BoxStream;
-use log::debug;
 use strum::{Display, EnumString};
+use tracing::debug;
 
 use crate::provider::dhcpcd::DhcpcdProvider;
 

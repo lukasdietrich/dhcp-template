@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use dhcp_template_api::{Interface, Lease4, Lease6};
 use envconfig::Envconfig;
-use log::info;
+use tracing::info;
 
 use crate::provider::notify::{InterfaceReader, NotifyProvider};
 

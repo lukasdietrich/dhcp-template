@@ -2,8 +2,8 @@ use std::{cmp::max, sync::Arc, time::Duration};
 
 use dhcp_template_api::{Node, Shallow};
 use envconfig::Envconfig;
-use log::debug;
 use moka::future::Cache;
+use tracing::debug;
 
 #[derive(Debug, Envconfig)]
 pub struct Config {

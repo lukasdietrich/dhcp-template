@@ -8,12 +8,10 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 dhcp-template-api = { workspace = true }
 dhcp-template-crd = { workspace = true }
-env_logger = { workspace = true }
 envconfig = { workspace = true }
 futures-util = { workspace = true }
 k8s-openapi = { workspace = true, features = ["latest", "schemars"] }
 kube = { workspace = true, features = ["runtime", "derive"] }
-log = { workspace = true }
 minijinja = { workspace = true }
 moka = { workspace = true }
 schemars = { workspace = true }
@@ -22,3 +20,5 @@ serde_json = { workspace = true }
 serde_yaml = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

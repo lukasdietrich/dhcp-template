@@ -8,9 +8,9 @@ use std::net::SocketAddr;
 use anyhow::{Context as _, Result};
 use dhcp_template_api::controller_service_server::ControllerServiceServer;
 use envconfig::Envconfig;
-use log::{LevelFilter, debug, info};
 use tokio::try_join;
 use tonic::transport::Server;
+use tracing::{debug, info};
 
 use crate::{operator::Operator, service::ControllerService, state::State};
 
@@ -25,10 +25,7 @@ struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::builder()
-        .filter_level(LevelFilter::Info)
-        .filter_module(module_path!(), LevelFilter::Debug)
-        .init();
+    tracing_subscriber::fmt::init();
 
     let config = Config::init_from_env().context("Could not parse agent config.")?;
     debug!("{:#?}", config);

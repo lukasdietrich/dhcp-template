@@ -3,7 +3,7 @@ mod provider;
 
 use anyhow::{Context, Result};
 use envconfig::Envconfig;
-use log::{LevelFilter, debug};
+use tracing::debug;
 
 use crate::agent::Agent;
 
@@ -18,10 +18,7 @@ struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::builder()
-        .filter_level(LevelFilter::Info)
-        .filter_module(module_path!(), LevelFilter::Debug)
-        .init();
+    tracing_subscriber::fmt::init();
 
     let config = Config::init_from_env().context("Could not parse agent config.")?;
     debug!("{:#?}", config);

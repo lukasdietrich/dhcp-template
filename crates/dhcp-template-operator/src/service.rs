@@ -1,6 +1,6 @@
 use dhcp_template_api::{Refresh, Scope, Update, controller_service_server, update::Data};
-use log::{error, trace};
 use tonic::{Request, Response, Status};
+use tracing::{error, trace};
 
 use crate::state::{self, State};
 

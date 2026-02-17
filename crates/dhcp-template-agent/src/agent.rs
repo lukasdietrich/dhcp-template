@@ -8,9 +8,9 @@ use dhcp_template_api::{
 };
 use envconfig::Envconfig;
 use futures_util::{Stream, TryStreamExt};
-use log::debug;
 use tokio::{select, time::sleep};
 use tonic::{Request, transport::Uri};
+use tracing::debug;
 
 use crate::provider::Provider;
 

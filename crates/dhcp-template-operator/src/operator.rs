@@ -6,7 +6,7 @@ use kube::{
     Api, Client, Error,
     runtime::{Controller, controller::Action, watcher::Config},
 };
-use log::{debug, info, warn};
+use tracing::{debug, info, warn};
 
 use crate::{state::State, template::ManifestTemplate as _};
 

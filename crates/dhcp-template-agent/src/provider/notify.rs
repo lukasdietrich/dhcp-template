@@ -10,9 +10,9 @@ use futures_util::{
     future::{Ready, ready},
     stream::{BoxStream, once},
 };
-use log::debug;
 use notify::{Event, EventKind, RecursiveMode, Watcher, recommended_watcher};
 use tokio::sync::mpsc::channel;
+use tracing::debug;
 
 use crate::provider::Provider;
 
