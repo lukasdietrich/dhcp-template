@@ -3,7 +3,7 @@ package dhcp_template;
 
 service ControllerService {
   // Push state of the node to the controller.
-  rpc PushNode(Node) returns (Refresh);
+  rpc PushNode(Update) returns (Refresh);
 }
 
 enum Scope {
@@ -20,11 +20,21 @@ message Refresh {
   Scope scope = 2;
 }
 
+message Update {
+  uint64 token = 1;
+  oneof data {
+    Shallow shallow = 2;
+    Node full = 3;
+  };
+}
+
+message Shallow {
+  string name = 1;
+}
+
 message Node {
   string name = 1;
-  Scope scope = 2;
-  uint64 token = 3;
-  repeated Interface interfaces = 4;
+  repeated Interface interfaces = 2;
 }
 
 message Interface {

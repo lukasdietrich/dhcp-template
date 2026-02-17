@@ -10,10 +10,12 @@ dhcp-template-api = { workspace = true }
 dhcp-template-crd = { workspace = true }
 env_logger = { workspace = true }
 envconfig = { workspace = true }
+futures-util = { workspace = true }
 k8s-openapi = { workspace = true, features = ["latest", "schemars"] }
 kube = { workspace = true, features = ["runtime", "derive"] }
 log = { workspace = true }
-moka = { version = "0.12.13", features = ["future"] }
+minijinja = { workspace = true }
+moka = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

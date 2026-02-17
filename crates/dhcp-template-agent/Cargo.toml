@@ -5,17 +5,17 @@ edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
-async-stream = "0.3.6"
+async-stream = { workspace = true }
 async-trait = { workspace = true }
 dhcp-template-api = { workspace = true }
-dhcproto = "0.14.0"
+dhcproto = { workspace = true }
 env_logger = { workspace = true }
 envconfig = { workspace = true }
 futures-time = { workspace = true }
 futures-util = { workspace = true }
 log = { workspace = true }
-notify = "8.2.0"
-rand = "0.10.0"
+notify = { workspace = true }
+rand = { workspace = true }
 strum = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }

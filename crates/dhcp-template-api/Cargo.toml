@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 prost = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 tonic = { workspace = true }
 tonic-prost = { workspace = true }
 
