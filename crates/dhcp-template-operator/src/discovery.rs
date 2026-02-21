@@ -1,6 +1,6 @@
-use std::str::FromStr as _;
+use std::{convert::Infallible, fmt::Debug, str::FromStr as _};
 
-use dhcp_template_crd::ObjectRef;
+use dhcp_template_crd::{ObjectRef, ObjectRefError};
 use kube::{
     Api, Client,
     api::DynamicObject,
@@ -21,6 +21,12 @@ pub enum DiscoverError {
 
     #[error("Cannot discover api for namespace scoped object, when the object has no namespace.")]
     NamespaceScopeWithoutNamespace,
+
+    #[error(transparent)]
+    ObjectRefError(#[from] ObjectRefError),
+
+    #[error(transparent)]
+    Infallible(#[from] Infallible),
 }
 
 pub trait Discover
@@ -36,13 +42,14 @@ where
 impl<O> Discover for O
 where
     O: TryInto<ObjectRef>,
-    O::Error: std::fmt::Debug,
+    O::Error: Debug,
+    DiscoverError: From<O::Error>,
 {
     type Error = DiscoverError;
     type Object = DynamicObject;
 
     async fn discover(self, client: &Client) -> Result<Api<Self::Object>, Self::Error> {
-        let object_ref: ObjectRef = self.try_into().unwrap();
+        let object_ref: ObjectRef = self.try_into()?;
         let gvk = GroupVersion::from_str(&object_ref.api_version)?.with_kind(&object_ref.kind);
 
         let (resource, capabilities) = pinned_kind(client, &gvk).await?;

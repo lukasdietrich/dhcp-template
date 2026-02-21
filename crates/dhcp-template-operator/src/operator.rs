@@ -4,14 +4,13 @@ use dhcp_template_crd::DHCPTemplate;
 use futures_time::stream::StreamExt as _;
 use futures_util::StreamExt;
 use kube::{
-    Api, Client, ResourceExt as _,
-    api::PostParams,
-    runtime::{Controller, controller::Action, reflector::Lookup as _, watcher::Config},
+    Api, Client,
+    runtime::{Controller, controller::Action, watcher::Config},
 };
 use tracing::{Level, instrument, warn};
 
 use crate::{
-    api_ext::ApiExt as _,
+    api_ext::{ApiExt as _, ApplyError, OwnerExt as _, OwnerRefError},
     discovery::{Discover as _, DiscoverError},
     state::State,
     template::{ManifestTemplate as _, TemplateError},
@@ -60,8 +59,14 @@ enum ReconcileError {
     #[error("Could not discover api: {0}")]
     DiscoverError(#[from] DiscoverError),
 
-    #[error("Kubernetes error: {0}")]
+    #[error(transparent)]
     KubeError(#[from] kube::Error),
+
+    #[error("Could not apply manifest: {0}")]
+    ApplyError(#[from] ApplyError),
+
+    #[error("Could not take owner ref: {0}")]
+    OwnerRefError(#[from] OwnerRefError),
 }
 
 #[instrument(
@@ -79,13 +84,8 @@ async fn reconcile(
     let nodes = operator.state.snapshot();
     let manifests = object.spec.render(nodes)?;
 
-    for manifest in manifests {
-        let owners = manifest.owner_references_mut();
-        owners.push(
-            k8s_openapi::apimachinery::pkg::apis::meta::v1::OwnerReference::from(
-                object.metadata.uid.unwrap(),
-            ),
-        );
+    for mut manifest in manifests {
+        manifest.add_owner(&object)?;
 
         let api = manifest.discover(&operator.client).await?;
         api.apply(&manifest).await?;
@@ -106,7 +106,7 @@ fn error_policy(
 ) -> Action {
     match error {
         ReconcileError::Configuration(_) => Action::await_change(),
-        ReconcileError::DiscoverError(_) => Action::requeue(Duration::from_mins(5)),
         ReconcileError::KubeError(_) => Action::requeue(Duration::from_mins(1)),
+        _ => Action::requeue(Duration::from_mins(5)),
     }
 }

@@ -10,7 +10,6 @@ use crate::{ObjectRef, ObjectRefError};
     group = "k8s.lukasdietrich.com",
     version = "v1alpha1",
     kind = "DHCPTemplate",
-    namespaced,
     status = DHCPTemplateStatus
 )]
 #[serde(rename_all = "camelCase")]
@@ -26,7 +25,6 @@ impl TryFrom<&DHCPTemplate> for ObjectRef {
             api_version, kind, ..
         } = DHCPTemplate::api_resource();
 
-        let namespace = object.metadata.namespace.clone();
         let name = object
             .metadata
             .name
@@ -36,7 +34,7 @@ impl TryFrom<&DHCPTemplate> for ObjectRef {
         let object_ref = Self {
             api_version,
             kind,
-            namespace,
+            namespace: None,
             name,
         };
 

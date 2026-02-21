@@ -12,7 +12,7 @@ use futures_util::{
 };
 use notify::{Event, EventKind, RecursiveMode, Watcher, recommended_watcher};
 use tokio::sync::mpsc::channel;
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::provider::Provider;
 
@@ -64,8 +64,9 @@ fn watch_path(path: &Path) -> impl Stream<Item = Result<Event>> {
 
     stream! {
         let mut watcher = recommended_watcher(move |res| {
-            tx.blocking_send(res)
-                .expect("Could not send watcher event to channel!");
+            if let Err(err) = tx.blocking_send(res) {
+                error!("Could not send watch event: {}.", err);
+            }
         })?;
 
         watcher

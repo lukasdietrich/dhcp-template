@@ -6,7 +6,7 @@ use futures_util::{Stream, StreamExt as _};
 use moka::future::Cache;
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
-use tracing::{Level, instrument};
+use tracing::{Level, error, instrument};
 
 #[derive(Debug, Envconfig)]
 pub struct Config {
@@ -29,7 +29,9 @@ impl From<Config> for State {
         let nodes = Cache::builder()
             .time_to_idle(Duration::from_secs(config.idle_seconds))
             .eviction_listener(move |_key, _value, _cause| {
-                let _ = eviction.send(());
+                if let Err(err) = eviction.send(()) {
+                    error!("Could not send state eviction event: {}.", err);
+                }
             })
             .build();
 
@@ -66,7 +68,10 @@ impl State {
             .insert(node.name.clone(), (Arc::new(node.clone()), token))
             .await;
 
-        let _ = self.notifier.send(());
+        if let Err(err) = self.notifier.send(()) {
+            error!("Could not send state change event: {}.", err);
+        }
+
         Status::Ok(self.refresh_seconds)
     }
 

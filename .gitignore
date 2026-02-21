@@ -1,4 +1,5 @@
 /target
 
-*.lease
-*.lease6
+/*.lease
+/*.lease6
+/*.yaml
