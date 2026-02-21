@@ -1,3 +1,5 @@
+mod api_ext;
+mod discovery;
 mod operator;
 mod service;
 mod state;
@@ -11,6 +13,12 @@ use envconfig::Envconfig;
 use tokio::try_join;
 use tonic::transport::Server;
 use tracing::{debug, info};
+use tracing_subscriber::{
+    EnvFilter,
+    fmt::{self},
+    layer::SubscriberExt as _,
+    util::SubscriberInitExt as _,
+};
 
 use crate::{operator::Operator, service::ControllerService, state::State};
 
@@ -25,7 +33,10 @@ struct Config {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env()?)
+        .with(fmt::layer())
+        .try_init()?;
 
     let config = Config::init_from_env().context("Could not parse agent config.")?;
     debug!("{:#?}", config);

@@ -6,7 +6,7 @@ use dhcp_template_api::Interface;
 use envconfig::Envconfig;
 use futures_util::stream::BoxStream;
 use strum::{Display, EnumString};
-use tracing::debug;
+use tracing::{Level, instrument};
 
 use crate::provider::dhcpcd::DhcpcdProvider;
 
@@ -27,7 +27,7 @@ pub struct Config {
 
 pub trait Provider
 where
-    Self: Sync + Send,
+    Self: std::fmt::Debug + Sync + Send,
 {
     fn interfaces<'a>(&'a self) -> BoxStream<'a, Result<Vec<Interface>>>;
 }
@@ -35,9 +35,8 @@ where
 impl TryFrom<Config> for Box<dyn Provider> {
     type Error = anyhow::Error;
 
+    #[instrument(ret(level = Level::DEBUG), err(level = Level::ERROR))]
     fn try_from(config: Config) -> Result<Self, Self::Error> {
-        debug!("Creating provider {}.", config.implementation);
-
         let provider = Box::new(match config.implementation {
             Implementation::Dhcpcd => DhcpcdProvider::try_from(config.dhcpcd)?,
         });

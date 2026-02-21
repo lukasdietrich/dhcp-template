@@ -9,16 +9,19 @@ async-trait = { workspace = true }
 dhcp-template-api = { workspace = true }
 dhcp-template-crd = { workspace = true }
 envconfig = { workspace = true }
+futures-time = { workspace = true }
 futures-util = { workspace = true }
 k8s-openapi = { workspace = true, features = ["latest", "schemars"] }
 kube = { workspace = true, features = ["runtime", "derive"] }
 minijinja = { workspace = true }
 moka = { workspace = true }
 schemars = { workspace = true }
-serde = { workspace = true }
+serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true }
 serde_yaml = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
+tokio-stream = { workspace = true, features = ["sync"] }
 tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

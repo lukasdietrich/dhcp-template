@@ -10,7 +10,7 @@ use envconfig::Envconfig;
 use futures_util::{Stream, TryStreamExt};
 use tokio::{select, time::sleep};
 use tonic::{Request, transport::Uri};
-use tracing::debug;
+use tracing::{Level, debug, instrument};
 
 use crate::provider::Provider;
 
@@ -37,19 +37,14 @@ impl From<Config> for Agent {
     }
 }
 
+#[instrument(ret(level = Level::DEBUG))]
 fn random_node_name() -> String {
     let r: u64 = rand::random();
-    let name = format!("node-{:016x}", r);
-
-    debug!(
-        "No node name provided, using generated name to avoid conflicts {}.",
-        name
-    );
-
-    name
+    format!("node-{:016x}", r)
 }
 
 impl Agent {
+    #[instrument(skip_all, fields(node = self.node_name))]
     pub async fn run(&self, provider: Box<dyn Provider>) -> Result<()> {
         let mut updates = self.get_updates(&*provider);
 
@@ -60,12 +55,11 @@ impl Agent {
             .ok_or_else(|| anyhow!("Could not get initial node state."))?;
 
         loop {
-            debug!("Sending current {} state.", refresh.scope().as_str_name());
             refresh = self.push_node(&update, refresh.scope()).await?;
 
             select! {
                _ = sleep(Duration::from_secs(refresh.backoff_seconds)) => {
-                   debug!("Backoff duration of {}s has passed.", refresh.backoff_seconds);
+                   debug!("Backoff duration has passed.");
                }
 
                result = updates.try_next() => {
@@ -84,6 +78,12 @@ impl Agent {
         }
     }
 
+    #[instrument(
+        skip(self, update),
+        fields(token = update.token),
+        ret(level = Level::DEBUG),
+        err(level = Level::WARN),
+    )]
     async fn push_node(&self, update: &Update, scope: Scope) -> Result<Refresh> {
         let mut controller_service = ControllerServiceClient::connect(self.endpoint.clone())
             .await

@@ -1,6 +1,6 @@
 use dhcp_template_api::{Refresh, Scope, Update, controller_service_server, update::Data};
 use tonic::{Request, Response, Status};
-use tracing::{error, trace};
+use tracing::{Level, instrument};
 
 use crate::state::{self, State};
 
@@ -12,21 +12,18 @@ impl ControllerService {
     pub fn new(state: State) -> Self {
         Self { state }
     }
-}
 
-#[async_trait::async_trait]
-impl controller_service_server::ControllerService for ControllerService {
-    async fn push_node(&self, request: Request<Update>) -> Result<Response<Refresh>, Status> {
-        let update = request.into_inner();
-        trace!("Received {:#?}.", update);
-
+    #[instrument(
+        skip_all,
+        fields(token = update.token),
+        ret(level = Level::DEBUG),
+        err(level = Level::WARN),
+    )]
+    async fn push_node(&self, update: Update) -> Result<Refresh, Status> {
         let status = match &update.data {
             Some(Data::Full(node)) => self.state.insert((node, update.token)).await,
             Some(Data::Shallow(shallow)) => self.state.status((shallow, update.token)).await,
-            None => {
-                error!("Received empty update!");
-                state::Status::Unknown
-            }
+            None => state::Status::Unknown,
         };
 
         let refresh = match status {
@@ -39,6 +36,16 @@ impl controller_service_server::ControllerService for ControllerService {
                 scope: Scope::Shallow.into(),
             },
         };
+
+        Ok(refresh)
+    }
+}
+
+#[async_trait::async_trait]
+impl controller_service_server::ControllerService for ControllerService {
+    async fn push_node(&self, request: Request<Update>) -> Result<Response<Refresh>, Status> {
+        let update = request.into_inner();
+        let refresh = self.push_node(update).await?;
 
         Ok(refresh.into())
     }

@@ -8,7 +8,7 @@ use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use dhcp_template_api::{Interface, Lease4, Lease6};
 use envconfig::Envconfig;
-use tracing::info;
+use tracing::{Level, instrument};
 
 use crate::provider::notify::{InterfaceReader, NotifyProvider};
 
@@ -31,13 +31,13 @@ impl TryFrom<Config> for DhcpcdProvider {
     }
 }
 
+#[derive(Debug)]
 pub struct DhcpcdInterfaceReader;
 
 #[async_trait]
 impl InterfaceReader for DhcpcdInterfaceReader {
+    #[instrument(skip(self), err(level = Level::WARN))]
     async fn interfaces(&self, path: &Path) -> Result<Vec<Interface>> {
-        info!("Reading lease files in {:?}.", path);
-
         let lease_files = fs::read_dir(path)?
             .flatten()
             .map(|entry| entry.path())
@@ -46,8 +46,6 @@ impl InterfaceReader for DhcpcdInterfaceReader {
         let mut interfaces = BTreeMap::new();
 
         for lease_file in lease_files {
-            info!("Reading lease file {:?}.", lease_file);
-
             let name = file_base_name(&lease_file)
                 .ok_or_else(|| anyhow!("Could not extract base name from path {:?}.", &path))?;
 
@@ -73,11 +71,13 @@ fn file_base_name(path: &Path) -> Option<String> {
         .map(|s| s.to_owned())
 }
 
+#[derive(Debug)]
 enum Lease {
     V4(Lease4),
     V6(Lease6),
 }
 
+#[instrument(ret(level = Level::DEBUG), err(level = Level::WARN))]
 fn parse_lease(path: &Path) -> Result<Lease> {
     let bytes = read(path)?;
 

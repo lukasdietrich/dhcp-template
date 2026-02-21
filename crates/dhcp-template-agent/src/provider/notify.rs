@@ -21,6 +21,7 @@ pub trait InterfaceReader {
     async fn interfaces(&self, path: &Path) -> Result<Vec<Interface>>;
 }
 
+#[derive(Debug)]
 pub struct NotifyProvider<R> {
     path: PathBuf,
     reader: R,
@@ -34,7 +35,7 @@ impl<R> NotifyProvider<R> {
 
 impl<R> Provider for NotifyProvider<R>
 where
-    R: InterfaceReader + Sync + Send,
+    R: InterfaceReader + Sync + Send + std::fmt::Debug,
 {
     fn interfaces<'a>(&'a self) -> BoxStream<'a, Result<Vec<Interface>>> {
         let initial = once(async { Ok(Event::new(EventKind::Other)) });
