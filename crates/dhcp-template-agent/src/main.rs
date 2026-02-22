@@ -1,5 +1,6 @@
 mod agent;
 mod provider;
+mod shallow;
 
 use anyhow::{Context, Result};
 use envconfig::Envconfig;

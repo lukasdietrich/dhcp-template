@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow, bail};
 use dhcp_template_api::{
-    Node, Refresh, Scope, Shallow, Update,
+    Node, Refresh, Scope, Update,
     controller_service_client::ControllerServiceClient,
     update::Data::{self},
 };
@@ -12,7 +12,7 @@ use tokio::{select, time::sleep};
 use tonic::{Request, transport::Uri};
 use tracing::{Level, debug, instrument};
 
-use crate::provider::Provider;
+use crate::{provider::Provider, shallow::ShallowClone as _};
 
 #[derive(Debug, Envconfig)]
 pub struct Config {
@@ -90,7 +90,7 @@ impl Agent {
             .context("Could not connect to controller.")?;
 
         let request = Request::new(match scope {
-            Scope::Shallow => shallow_clone(update),
+            Scope::Shallow => update.shallow_clone(),
             Scope::Full => update.clone(),
         });
 
@@ -108,17 +108,5 @@ impl Agent {
                 interfaces,
             })),
         })
-    }
-}
-
-fn shallow_clone(update: &Update) -> Update {
-    Update {
-        token: update.token,
-        data: match &update.data {
-            Some(Data::Full(node)) => Some(Data::Shallow(Shallow {
-                name: node.name.clone(),
-            })),
-            shallow => shallow.clone(),
-        },
     }
 }
