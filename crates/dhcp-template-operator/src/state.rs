@@ -39,8 +39,8 @@ impl From<Config> for State {
         let refresh_seconds = max(config.idle_seconds / 2, 5);
 
         Self {
-            refresh_seconds,
             nodes,
+            refresh_seconds,
             notifier,
         }
     }

@@ -37,7 +37,7 @@ impl<R> Provider for NotifyProvider<R>
 where
     R: InterfaceReader + Sync + Send + std::fmt::Debug,
 {
-    fn interfaces<'a>(&'a self) -> BoxStream<'a, Result<Vec<Interface>>> {
+    fn interfaces(&self) -> BoxStream<'_, Result<Vec<Interface>>> {
         let initial = once(async { Ok(Event::new(EventKind::Other)) });
         let changes = watch_path(&self.path)
             .try_filter(is_relevant_event)
@@ -65,15 +65,15 @@ fn watch_path(path: &Path) -> impl Stream<Item = Result<Event>> {
     stream! {
         let mut watcher = recommended_watcher(move |res| {
             if let Err(err) = tx.blocking_send(res) {
-                error!("Could not send watch event: {}.", err);
+                error!("Could not send watch event: {err}.");
             }
         })?;
 
         watcher
             .watch(path, RecursiveMode::NonRecursive)
-            .with_context(|| format!("Could not watch path {:?}.", path))?;
+            .with_context(|| format!("Could not watch path {}.", path.display()))?;
 
-        debug!("Watching {:?} for changes.", path);
+        debug!("Watching {} for changes.", path.display());
 
         while let Some(res) = rx.recv().await {
             yield Ok(res?);

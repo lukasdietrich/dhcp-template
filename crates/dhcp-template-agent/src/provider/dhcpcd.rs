@@ -1,4 +1,5 @@
 use std::{
+    borrow::ToOwned,
     collections::BTreeMap,
     fs::{self, canonicalize, read},
     path::{Path, PathBuf},
@@ -46,19 +47,19 @@ impl InterfaceReader for DhcpcdInterfaceReader {
         let mut interfaces = BTreeMap::new();
 
         for lease_file in lease_files {
-            let name = file_base_name(&lease_file)
-                .ok_or_else(|| anyhow!("Could not extract base name from path {:?}.", &path))?;
+            let name = file_base_name(&lease_file).ok_or_else(|| {
+                anyhow!("Could not extract base name from path {}.", path.display())
+            })?;
 
             let interface = interfaces.entry(name.clone()).or_insert(Interface {
                 name,
-                lease4: Default::default(),
-                lease6: Default::default(),
+                ..Default::default()
             });
 
             match parse_lease(&lease_file)? {
                 Lease::V4(lease4) => interface.lease4 = Some(lease4),
                 Lease::V6(lease6) => interface.lease6 = Some(lease6),
-            };
+            }
         }
 
         Ok(interfaces.values().cloned().collect())
@@ -68,7 +69,7 @@ impl InterfaceReader for DhcpcdInterfaceReader {
 fn file_base_name(path: &Path) -> Option<String> {
     path.file_prefix()
         .and_then(|s| s.to_str())
-        .map(|s| s.to_owned())
+        .map(ToOwned::to_owned)
 }
 
 #[derive(Debug)]
@@ -91,7 +92,7 @@ fn parse_lease(path: &Path) -> Result<Lease> {
 }
 
 mod v4 {
-    use std::path::Path;
+    use std::{path::Path, string::ToString};
 
     use anyhow::{Context as _, Result};
     use dhcp_template_api::Lease4;
@@ -115,9 +116,9 @@ mod v4 {
 
     fn get_dns(options: &DhcpOptions) -> Vec<String> {
         if let Some(DhcpOption::DomainNameServer(dns)) = options.get(OptionCode::DomainNameServer) {
-            dns.iter().map(|addr| addr.to_string()).collect()
+            dns.iter().map(ToString::to_string).collect()
         } else {
-            Default::default()
+            Vec::default()
         }
     }
 
@@ -136,7 +137,7 @@ mod v4 {
 }
 
 mod v6 {
-    use std::path::Path;
+    use std::{path::Path, string::ToString};
 
     use anyhow::{Context as _, Result};
     use dhcp_template_api::{Lease6, Prefix6};
@@ -170,7 +171,7 @@ mod v6 {
                     None
                 }
             })
-            .flat_map(|dns| dns.iter().map(|addr| addr.to_string()))
+            .flat_map(|dns| dns.iter().map(ToString::to_string))
             .collect()
     }
 
@@ -197,7 +198,7 @@ mod v6 {
             })
             .map(|iaprefix| Prefix6 {
                 ip: iaprefix.prefix_ip.to_string(),
-                len: iaprefix.prefix_len as u32,
+                len: u32::from(iaprefix.prefix_len),
             })
             .collect()
     }

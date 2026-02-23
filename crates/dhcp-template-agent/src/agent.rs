@@ -58,7 +58,7 @@ impl Agent {
             refresh = self.push_node(&update, refresh.scope()).await?;
 
             select! {
-               _ = sleep(Duration::from_secs(refresh.backoff_seconds)) => {
+               () = sleep(Duration::from_secs(refresh.backoff_seconds)) => {
                    debug!("Backoff duration has passed.");
                }
 

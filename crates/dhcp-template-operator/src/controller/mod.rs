@@ -11,7 +11,8 @@ use futures_util::StreamExt as _;
 use kube::{
     Api, Client,
     runtime::{
-        Controller, WatchStreamExt as _, controller::Config, predicates, reflector, watcher,
+        Controller, PredicateConfig, WatchStreamExt as _, controller::Config, predicates,
+        reflector, watcher,
     },
 };
 use tracing::warn;
@@ -31,11 +32,11 @@ pub async fn run(state: State) -> Result<()> {
     let state_changes = state.changes();
 
     let (reader, writer) = reflector::store();
-    let stream = watcher(api, Default::default())
+    let stream = watcher(api, watcher::Config::default())
         .default_backoff()
         .reflect(writer)
         .applied_objects()
-        .predicate_filter(predicates::generation, Default::default());
+        .predicate_filter(predicates::generation, PredicateConfig::default());
 
     let ctx = Arc::new(Context::from((client, state)));
 

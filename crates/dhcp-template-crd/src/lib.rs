@@ -42,6 +42,7 @@ pub struct Condition {
 }
 
 impl Condition {
+    #[must_use]
     pub fn new(object: &DHCPTemplate, reason: Reason, type_: Type, message: String) -> Self {
         Self {
             last_transition_time: Time::from(Timestamp::now()),

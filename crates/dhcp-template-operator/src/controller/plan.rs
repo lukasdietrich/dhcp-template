@@ -83,7 +83,7 @@ impl<'a> Plan<'a> {
                 _ => {
                     res?;
                 }
-            };
+            }
         }
 
         for manifest in self.manifests {

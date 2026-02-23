@@ -29,7 +29,7 @@ pub trait Provider
 where
     Self: std::fmt::Debug + Sync + Send,
 {
-    fn interfaces<'a>(&'a self) -> BoxStream<'a, Result<Vec<Interface>>>;
+    fn interfaces(&self) -> BoxStream<'_, Result<Vec<Interface>>>;
 }
 
 impl TryFrom<Config> for Box<dyn Provider> {

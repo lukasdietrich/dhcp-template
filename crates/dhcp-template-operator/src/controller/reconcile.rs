@@ -53,7 +53,7 @@ pub async fn reconcile(
         Ok(manifests) => manifests,
         Err(err) => {
             let _ = api
-                .set_template_error(&object, Reason::TemplateEvaluation, format!("{}", err))
+                .set_template_error(&object, Reason::TemplateEvaluation, format!("{err}"))
                 .await;
 
             Err(err)?
@@ -64,7 +64,7 @@ pub async fn reconcile(
         Ok(plan) => plan,
         Err(err) => {
             let _ = api
-                .set_template_error(&object, Reason::PlanningObjects, format!("{}", err))
+                .set_template_error(&object, Reason::PlanningObjects, format!("{err}"))
                 .await;
 
             Err(err)?
@@ -81,7 +81,7 @@ pub async fn reconcile(
     .await?;
 
     match plan.execute(&object, &ctx).await {
-        Ok(_) => {
+        Ok(()) => {
             api.set_template_status(
                 &object,
                 plan.apply,
@@ -100,7 +100,7 @@ pub async fn reconcile(
                 plan.all(),
                 Reason::Reconciliation,
                 Type::Error,
-                format!("{}", err),
+                format!("{err}"),
             )
             .await?;
             Err(err.into())
@@ -113,6 +113,7 @@ pub async fn reconcile(
     fields(name = object.metadata.name, namespace = object.metadata.namespace),
     ret(level = Level::DEBUG),
 )]
+#[allow(clippy::needless_pass_by_value)]
 pub fn error_policy(
     object: Arc<DHCPTemplate>,
     error: &ReconcileError,

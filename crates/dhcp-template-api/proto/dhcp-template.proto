@@ -14,7 +14,7 @@ enum Scope {
 }
 
 message Refresh {
-  // The agent should not push sooner than backoff_seconds, unless the state changes.
+  // The agent should not push sooner than `backoff_seconds`, unless the state changes.
   uint64 backoff_seconds = 1;
   // The agent must push with the given scope in the next iteration.
   Scope scope = 2;
