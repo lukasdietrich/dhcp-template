@@ -21,7 +21,7 @@ pub enum DiscoveryError {
     ObjectRef(#[from] ObjectRefError),
 
     #[error("Unexpected resource scope {0:?}.")]
-    MismatchingScope(Scope),
+    UnexpectedResourceScope(Scope),
 }
 
 pub trait Discover {
@@ -41,24 +41,15 @@ impl Discover for ObjectRef {
         let group_version_kind = GroupVersion::from_str(&self.api_version)?.with_kind(&self.kind);
         let (resource, capabilities) = pinned_kind(&client, &group_version_kind).await?;
 
-        let api = match capabilities.scope {
-            Scope::Cluster => {
-                if self.namespace.is_some() {
-                    Err(DiscoveryError::MismatchingScope(Scope::Cluster))?;
-                }
+        let namespace = self.namespace.as_ref();
+        let scope = capabilities.scope;
 
-                Api::all_with(client, &resource)
+        match (namespace, scope) {
+            (None, Scope::Cluster) => Ok(Api::all_with(client, &resource)),
+            (Some(namespace), Scope::Namespaced) => {
+                Ok(Api::namespaced_with(client, namespace, &resource))
             }
-            Scope::Namespaced => {
-                let namespace = self
-                    .namespace
-                    .as_ref()
-                    .ok_or(DiscoveryError::MismatchingScope(Scope::Namespaced))?;
-
-                Api::namespaced_with(client, namespace, &resource)
-            }
-        };
-
-        Ok(api)
+            (_, scope) => Err(DiscoveryError::UnexpectedResourceScope(scope)),
+        }
     }
 }

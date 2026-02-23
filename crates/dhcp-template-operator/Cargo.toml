@@ -12,7 +12,6 @@ async-trait = { workspace = true }
 dhcp-template-api = { workspace = true }
 dhcp-template-crd = { workspace = true }
 envconfig = { workspace = true }
-futures-time = { workspace = true }
 futures-util = { workspace = true }
 itertools = { workspace = true }
 k8s-openapi = { workspace = true, features = ["latest", "schemars"] }

@@ -452,7 +452,6 @@ dependencies = [
  "dhcp-template-api",
  "dhcp-template-crd",
  "envconfig",
- "futures-time",
  "futures-util",
  "itertools",
  "k8s-openapi",
