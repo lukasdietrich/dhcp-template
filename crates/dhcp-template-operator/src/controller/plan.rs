@@ -8,7 +8,7 @@ use crate::{
     controller::context::Context,
     k8s::{
         api_ext::{ApiExt as _, ApiExtError, OwnerExt as _, OwnerRefError},
-        discovery::{Discover as _, DiscoverError},
+        discovery::{Discover as _, DiscoveryError},
     },
 };
 
@@ -21,7 +21,7 @@ pub enum PlanDiffError {
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub enum PlanExecutionError {
-    Discover(#[from] DiscoverError),
+    Discover(#[from] DiscoveryError),
     Kube(#[from] kube::Error),
     ApiExt(#[from] ApiExtError),
     OwnerRef(#[from] OwnerRefError),

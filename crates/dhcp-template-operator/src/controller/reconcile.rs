@@ -12,7 +12,7 @@ use crate::{
     },
     k8s::{
         api_ext::{ApiExtError, OwnerRefError},
-        discovery::DiscoverError,
+        discovery::DiscoveryError,
     },
     template::{ManifestTemplate as _, TemplateError},
 };
@@ -21,7 +21,7 @@ use crate::{
 #[error(transparent)]
 pub enum ReconcileError {
     Configuration(#[from] TemplateError),
-    DiscoverError(#[from] DiscoverError),
+    DiscoverError(#[from] DiscoveryError),
     KubeError(#[from] kube::Error),
     ApiError(#[from] ApiExtError),
     OwnerRefError(#[from] OwnerRefError),
