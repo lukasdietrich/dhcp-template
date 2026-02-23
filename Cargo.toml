@@ -13,7 +13,6 @@ expect_used = "deny"
 anyhow = "1"
 async-stream = "0.3.6"
 async-trait = "0.1.89"
-chrono = "0.4.43"
 dhcp-template-api = { path = "crates/dhcp-template-api" }
 dhcp-template-crd = { path = "crates/dhcp-template-crd" }
 dhcproto = "0.14.0"
