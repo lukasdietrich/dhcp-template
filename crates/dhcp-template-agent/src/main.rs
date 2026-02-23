@@ -4,7 +4,7 @@ mod shallow;
 
 use anyhow::{Context, Result};
 use envconfig::Envconfig;
-use tracing::debug;
+use tracing::{debug, level_filters::LevelFilter};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 use crate::agent::Agent;
@@ -21,7 +21,11 @@ struct Config {
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env()?)
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env()?,
+        )
         .with(fmt::layer())
         .try_init()?;
 

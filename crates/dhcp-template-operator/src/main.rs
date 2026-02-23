@@ -11,7 +11,7 @@ use dhcp_template_api::controller_service_server::ControllerServiceServer;
 use envconfig::Envconfig;
 use tokio::try_join;
 use tonic::transport::Server;
-use tracing::{debug, info};
+use tracing::{debug, info, level_filters::LevelFilter};
 use tracing_subscriber::{
     EnvFilter,
     fmt::{self},
@@ -33,7 +33,11 @@ struct Config {
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env()?)
+        .with(
+            EnvFilter::builder()
+                .with_default_directive(LevelFilter::INFO.into())
+                .from_env()?,
+        )
         .with(fmt::layer())
         .try_init()?;
 
