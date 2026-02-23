@@ -23,7 +23,7 @@ use crate::{service::ControllerService, state::State};
 
 #[derive(Debug, Envconfig)]
 struct Config {
-    #[envconfig(from = "DHCP_TEMPLATE__ADDR", default = "[::1]:50051")]
+    #[envconfig(from = "DHCP_TEMPLATE__ADDR", default = "[::]:50051")]
     addr: SocketAddr,
 
     #[envconfig(nested)]
