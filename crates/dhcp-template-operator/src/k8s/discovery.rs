@@ -1,4 +1,4 @@
-use std::{convert::Infallible, fmt::Debug, str::FromStr as _};
+use std::{fmt::Debug, str::FromStr as _};
 
 use dhcp_template_crd::{ObjectRef, ObjectRefError};
 use kube::{
@@ -10,10 +10,10 @@ use kube::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum DiscoverError {
-    #[error("Could not parse GroupVersioKind: {0}")]
+    #[error(transparent)]
     ParseGroupVersionError(#[from] ParseGroupVersionError),
 
-    #[error("Kubernetes Error: {0}")]
+    #[error(transparent)]
     KubeError(#[from] kube::Error),
 
     #[error("Cannot discover api for cluster scoped object, when the object has a namespace.")]
@@ -24,35 +24,33 @@ pub enum DiscoverError {
 
     #[error(transparent)]
     ObjectRefError(#[from] ObjectRefError),
-
-    #[error(transparent)]
-    Infallible(#[from] Infallible),
 }
 
-pub trait Discover
+pub trait Discover<'a>
 where
     Self: Sized,
 {
     type Error;
     type Object;
 
-    async fn discover(self, client: &Client) -> Result<Api<Self::Object>, Self::Error>;
+    async fn discover(&'a self, client: Client) -> Result<Api<Self::Object>, Self::Error>;
 }
 
-impl<O> Discover for O
+impl<'a, O> Discover<'a> for O
 where
-    O: TryInto<ObjectRef>,
-    O::Error: Debug,
-    DiscoverError: From<O::Error>,
+    O: 'a,
+    ObjectRef: TryFrom<&'a O>,
+    <ObjectRef as TryFrom<&'a O>>::Error: Debug,
+    DiscoverError: From<<ObjectRef as TryFrom<&'a O>>::Error>,
 {
     type Error = DiscoverError;
     type Object = DynamicObject;
 
-    async fn discover(self, client: &Client) -> Result<Api<Self::Object>, Self::Error> {
+    async fn discover(&'a self, client: Client) -> Result<Api<Self::Object>, Self::Error> {
         let object_ref: ObjectRef = self.try_into()?;
         let gvk = GroupVersion::from_str(&object_ref.api_version)?.with_kind(&object_ref.kind);
 
-        let (resource, capabilities) = pinned_kind(client, &gvk).await?;
+        let (resource, capabilities) = pinned_kind(&client, &gvk).await?;
 
         let api = match capabilities.scope {
             Scope::Cluster => {
@@ -60,14 +58,14 @@ where
                     return Err(Self::Error::ClusterScopeWithNamespace);
                 }
 
-                Api::all_with(client.clone(), &resource)
+                Api::all_with(client, &resource)
             }
             Scope::Namespaced => {
                 let namespace = object_ref
                     .namespace
                     .ok_or(Self::Error::NamespaceScopeWithoutNamespace)?;
 
-                Api::namespaced_with(client.clone(), &namespace, &resource)
+                Api::namespaced_with(client, &namespace, &resource)
             }
         };
 

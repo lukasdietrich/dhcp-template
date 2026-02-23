@@ -3,6 +3,7 @@ use std::{cmp::max, sync::Arc, time::Duration};
 use dhcp_template_api::{Node, Shallow};
 use envconfig::Envconfig;
 use futures_util::{Stream, StreamExt as _};
+use itertools::Itertools as _;
 use moka::future::Cache;
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
@@ -38,8 +39,8 @@ impl From<Config> for State {
         let refresh_seconds = max(config.idle_seconds / 2, 5);
 
         Self {
-            nodes,
             refresh_seconds,
+            nodes,
             notifier,
         }
     }
@@ -76,10 +77,11 @@ impl State {
     }
 
     pub fn snapshot(&self) -> Vec<Arc<Node>> {
-        let mut nodes: Vec<Arc<Node>> = self.nodes.iter().map(|(_, (node, _))| node).collect();
-
-        nodes.sort_by(|a, b| a.name.cmp(&b.name));
-        nodes
+        self.nodes
+            .iter()
+            .map(|(_, (node, _))| node)
+            .sorted_by(|a, b| a.name.cmp(&b.name))
+            .collect()
     }
 
     pub fn changes(&self) -> impl Stream<Item = ()> + use<> {

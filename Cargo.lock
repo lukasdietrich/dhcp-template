@@ -454,6 +454,7 @@ dependencies = [
  "envconfig",
  "futures-time",
  "futures-util",
+ "itertools",
  "k8s-openapi",
  "kube",
  "minijinja",

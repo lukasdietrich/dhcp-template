@@ -8,11 +8,13 @@ pub struct ControllerService {
     state: State,
 }
 
-impl ControllerService {
-    pub fn new(state: State) -> Self {
+impl From<State> for ControllerService {
+    fn from(state: State) -> Self {
         Self { state }
     }
+}
 
+impl ControllerService {
     #[instrument(
         skip_all,
         fields(token = update.token),

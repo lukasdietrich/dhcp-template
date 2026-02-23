@@ -1,6 +1,5 @@
-mod api_ext;
-mod discovery;
-mod operator;
+mod controller;
+mod k8s;
 mod service;
 mod state;
 mod template;
@@ -20,7 +19,7 @@ use tracing_subscriber::{
     util::SubscriberInitExt as _,
 };
 
-use crate::{operator::Operator, service::ControllerService, state::State};
+use crate::{service::ControllerService, state::State};
 
 #[derive(Debug, Envconfig)]
 struct Config {
@@ -47,22 +46,20 @@ async fn main() -> Result<()> {
         info!("Listening on {}.", &config.addr);
 
         Server::builder()
-            .add_service(ControllerServiceServer::new(ControllerService::new(
+            .add_service(ControllerServiceServer::new(ControllerService::from(
                 state.clone(),
             )))
             .serve(config.addr)
             .await
-            .context("Could not start grpc server!")
+            .context("Could not start grpc server.")
     };
 
     let reconcile = async {
         info!("Starting operator.");
 
-        Operator::new(state.clone())
-            .await?
-            .run()
+        controller::run(state.clone())
             .await
-            .context("Could not start operator!")
+            .context("Could not start controller.")
     };
 
     let _ = try_join!(serve, reconcile)?;
