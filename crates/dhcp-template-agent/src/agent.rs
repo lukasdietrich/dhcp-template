@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result, anyhow, bail};
 use dhcp_template_api::{
-    Node, Refresh, Scope, Update,
+    Interface, Node, Refresh, Scope, Update,
     controller_service_client::ControllerServiceClient,
     update::Data::{self},
 };
@@ -101,12 +101,19 @@ impl Agent {
     }
 
     fn get_updates(&self, provider: &dyn Provider) -> impl Stream<Item = Result<Update>> {
-        provider.interfaces().map_ok(|interfaces| Update {
+        provider
+            .interfaces()
+            .map_ok(|interfaces| self.map_update(interfaces))
+    }
+
+    #[instrument(skip_all, ret(level = Level::INFO))]
+    fn map_update(&self, interfaces: Vec<Interface>) -> Update {
+        Update {
             token: rand::random(),
             data: Some(Data::Full(Node {
                 name: self.node_name.clone(),
                 interfaces,
             })),
-        })
+        }
     }
 }
