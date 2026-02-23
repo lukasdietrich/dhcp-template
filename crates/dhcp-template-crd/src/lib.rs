@@ -15,7 +15,6 @@ use serde::{Deserialize, Serialize};
     kind = "DHCPTemplate",
     status = DHCPTemplateStatus,
     printcolumn = r#"{"name":"Ready", "type":"string", "jsonPath":".status.conditions[0].type"}"#,
-    printcolumn = r#"{"name":"Reason", "type":"string", "jsonPath":".status.conditions[0].reason"}"#,
     printcolumn = r#"{"name":"Message", "type":"string", "jsonPath":".status.conditions[0].message"}"#,
 )]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +57,8 @@ impl Condition {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub enum Reason {
     Reconciliation,
+    TemplateEvaluation,
+    PlanningObjects,
     AllObjectsReady,
     #[serde(other)]
     Unknown,

@@ -1,14 +1,18 @@
 use std::{sync::Arc, time::Duration};
 
-use dhcp_template_crd::{DHCPTemplate, ObjectRefError};
-use kube::{Api, api::DeleteParams, runtime::controller::Action};
-use tracing::{Level, info, instrument, warn};
+use dhcp_template_crd::{DHCPTemplate, ObjectRefError, Reason, Type};
+use kube::{Api, runtime::controller::Action};
+use tracing::{Level, info, instrument};
 
 use crate::{
-    controller::{context::Context, plan::Plan, status::DHCPTemplateStatusExt as _},
+    controller::{
+        context::Context,
+        plan::{Plan, PlanDiffError, PlanExecutionError},
+        status::DHCPTemplateStatusExt as _,
+    },
     k8s::{
-        api_ext::{ApiExt as _, ApiExtError, OwnerExt as _, OwnerRefError},
-        discovery::{Discover as _, DiscoverError},
+        api_ext::{ApiExtError, OwnerRefError},
+        discovery::DiscoverError,
     },
     template::{ManifestTemplate as _, TemplateError},
 };
@@ -22,6 +26,9 @@ pub enum ReconcileError {
     ApiError(#[from] ApiExtError),
     OwnerRefError(#[from] OwnerRefError),
     ObjectRefError(#[from] ObjectRefError),
+
+    PlanDiff(#[from] PlanDiffError),
+    PlanExecution(#[from] PlanExecutionError),
 }
 
 #[instrument(
@@ -34,41 +41,71 @@ pub async fn reconcile(
     object: Arc<DHCPTemplate>,
     ctx: Arc<Context>,
 ) -> Result<Action, ReconcileError> {
+    let api: Api<DHCPTemplate> = Api::all(ctx.client());
     let nodes = ctx.snapshot();
+
     if nodes.is_empty() {
         info!("Skipping reconciliation, because no nodes have been registered yet.");
         return Ok(Action::await_change());
     }
 
-    let manifests = object.spec.render(nodes)?;
-    let plan = Plan::diff(&object.status, &manifests)?;
+    let manifests = match object.spec.render(nodes) {
+        Ok(manifests) => manifests,
+        Err(err) => {
+            let _ = api
+                .set_template_error(&object, Reason::TemplateEvaluation, format!("{}", err))
+                .await;
 
-    let template_api: Api<DHCPTemplate> = Api::all(ctx.client());
-    template_api.set_status_pending(&object, plan.all()).await?;
+            Err(err)?
+        }
+    };
 
-    for object_ref in &plan.delete {
-        let api = object_ref.discover(ctx.client()).await?;
-        let res = api.delete(&object_ref.name, &DeleteParams::default()).await;
+    let plan = match Plan::diff(object.status.as_ref(), &manifests) {
+        Ok(plan) => plan,
+        Err(err) => {
+            let _ = api
+                .set_template_error(&object, Reason::PlanningObjects, format!("{}", err))
+                .await;
 
-        match res {
-            Err(kube::Error::Api(status)) if status.is_not_found() => {
-                warn!("Could not delete object.");
-            }
-            _ => {
-                res?;
-            }
-        };
+            Err(err)?
+        }
+    };
+
+    api.set_template_status(
+        &object,
+        plan.all(),
+        Reason::Reconciliation,
+        Type::Pending,
+        "Reconciling template objects.".to_owned(),
+    )
+    .await?;
+
+    match plan.execute(&object, &ctx).await {
+        Ok(_) => {
+            api.set_template_status(
+                &object,
+                plan.apply,
+                Reason::AllObjectsReady,
+                Type::Ready,
+                "Template objects reconciled successfully.".to_owned(),
+            )
+            .await?;
+
+            Ok(Action::requeue(Duration::from_hours(6)))
+        }
+
+        Err(err) => {
+            api.set_template_status(
+                &object,
+                plan.all(),
+                Reason::Reconciliation,
+                Type::Error,
+                format!("{}", err),
+            )
+            .await?;
+            Err(err.into())
+        }
     }
-
-    for mut manifest in manifests {
-        manifest.add_owner(&object)?;
-
-        let api = manifest.discover(ctx.client()).await?;
-        api.apply(&manifest).await?;
-    }
-
-    template_api.set_status_ready(&object, plan.apply).await?;
-    Ok(Action::requeue(Duration::from_hours(1)))
 }
 
 #[instrument(

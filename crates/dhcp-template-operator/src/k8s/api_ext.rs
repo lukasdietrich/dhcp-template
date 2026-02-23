@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::Deref, sync::Arc};
+use std::fmt::Debug;
 
 use dhcp_template_crd::{DHCPTemplate, DHCPTemplateStatus};
 use itertools::Itertools as _;
@@ -42,7 +42,7 @@ where
 pub trait OwnerExt {
     type Error;
 
-    fn add_owner<O>(&mut self, owner: &Arc<O>) -> Result<(), Self::Error>
+    fn add_owner<O>(&mut self, owner: &O) -> Result<(), Self::Error>
     where
         O: Resource<DynamicType = ()>;
 }
@@ -54,7 +54,7 @@ pub struct OwnerRefError;
 impl OwnerExt for DynamicObject {
     type Error = OwnerRefError;
 
-    fn add_owner<O>(&mut self, owner: &Arc<O>) -> Result<(), Self::Error>
+    fn add_owner<O>(&mut self, owner: &O) -> Result<(), Self::Error>
     where
         O: Resource<DynamicType = ()>,
     {
@@ -69,19 +69,18 @@ pub trait StatusExt<K> {
     type Status;
     type Error;
 
-    async fn set_status<O>(&self, object: &O, status: Self::Status) -> Result<(), Self::Error>
-    where
-        O: Deref<Target = K>;
+    async fn set_status(&self, object: &K, status: Self::Status) -> Result<(), Self::Error>;
 }
 
 impl StatusExt<DHCPTemplate> for Api<DHCPTemplate> {
     type Status = DHCPTemplateStatus;
     type Error = ApiExtError;
 
-    async fn set_status<O>(&self, object: &O, mut status: Self::Status) -> Result<(), Self::Error>
-    where
-        O: Deref<Target = DHCPTemplate>,
-    {
+    async fn set_status(
+        &self,
+        object: &DHCPTemplate,
+        mut status: Self::Status,
+    ) -> Result<(), Self::Error> {
         let name = object.name().ok_or(Self::Error::ResourceName)?;
         let params = PostParams::default();
 

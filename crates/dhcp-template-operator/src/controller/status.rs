@@ -1,7 +1,8 @@
-use std::{collections::BTreeSet, ops::Deref};
+use std::collections::BTreeSet;
 
 use dhcp_template_crd::{Condition, DHCPTemplate, DHCPTemplateStatus, ObjectRef, Reason, Type};
 use kube::Api;
+use tracing::{Level, instrument};
 
 use crate::k8s::api_ext::StatusExt;
 
@@ -9,66 +10,63 @@ pub trait DHCPTemplateStatusExt
 where
     Self: StatusExt<DHCPTemplate>,
 {
-    async fn set_status_pending<O>(
+    async fn set_template_status(
         &self,
-        object: &O,
+        object: &DHCPTemplate,
         objects: BTreeSet<ObjectRef>,
-    ) -> Result<(), Self::Error>
-    where
-        O: Deref<Target = DHCPTemplate>;
+        reason: Reason,
+        type_: Type,
+        message: String,
+    ) -> Result<(), Self::Error>;
 
-    async fn set_status_ready<O>(
+    async fn set_template_error(
         &self,
-        object: &O,
-        objects: BTreeSet<ObjectRef>,
-    ) -> Result<(), Self::Error>
-    where
-        O: Deref<Target = DHCPTemplate>;
+        object: &DHCPTemplate,
+        reason: Reason,
+        message: String,
+    ) -> Result<(), Self::Error>;
 }
 
 impl DHCPTemplateStatusExt for Api<DHCPTemplate> {
-    async fn set_status_pending<O>(
+    #[instrument(
+        skip(self, object, objects, message),
+        ret(level = Level::DEBUG),
+        err(level = Level::ERROR),
+    )]
+    async fn set_template_status(
         &self,
-        object: &O,
+        object: &DHCPTemplate,
         objects: BTreeSet<ObjectRef>,
-    ) -> Result<(), Self::Error>
-    where
-        O: Deref<Target = DHCPTemplate>,
-    {
+        reason: Reason,
+        type_: Type,
+        message: String,
+    ) -> Result<(), Self::Error> {
         self.set_status(
             object,
             DHCPTemplateStatus {
                 objects,
-                conditions: vec![Condition::new(
-                    object,
-                    Reason::Reconciliation,
-                    Type::Pending,
-                    "Beginning to reconcile rendered objects.".to_owned(),
-                )],
+                conditions: vec![Condition::new(object, reason, type_, message)],
             },
         )
         .await
     }
 
-    async fn set_status_ready<O>(
+    async fn set_template_error(
         &self,
-        object: &O,
-        objects: BTreeSet<ObjectRef>,
-    ) -> Result<(), Self::Error>
-    where
-        O: Deref<Target = DHCPTemplate>,
-    {
-        self.set_status(
+        object: &DHCPTemplate,
+        reason: Reason,
+        message: String,
+    ) -> Result<(), Self::Error> {
+        self.set_template_status(
             object,
-            DHCPTemplateStatus {
-                objects,
-                conditions: vec![Condition::new(
-                    object,
-                    Reason::AllObjectsReady,
-                    Type::Ready,
-                    "Applied objects successfully.".to_owned(),
-                )],
-            },
+            object
+                .status
+                .as_ref()
+                .map(|status| status.objects.clone())
+                .unwrap_or_default(),
+            reason,
+            Type::Error,
+            message,
         )
         .await
     }
