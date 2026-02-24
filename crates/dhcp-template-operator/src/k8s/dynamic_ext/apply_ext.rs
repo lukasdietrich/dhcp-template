@@ -8,6 +8,8 @@ use kube::{
 use serde::{Serialize, de::DeserializeOwned};
 use tracing::{Level, instrument};
 
+use crate::k8s::dynamic_ext::labels::MANAGED_BY_VALUE;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ApplyError {
     #[error(transparent)]
@@ -28,7 +30,7 @@ where
     #[instrument(skip(self), err(level = Level::WARN))]
     async fn apply_object(&self, patch: &K) -> Result<K, ApplyError> {
         let name = patch.name().ok_or(ApplyError::ResourceName)?;
-        let params = PatchParams::apply("dhcp-template-operator");
+        let params = PatchParams::apply(MANAGED_BY_VALUE);
         let patch = Patch::Apply(patch);
 
         Ok(self.patch::<_>(&name, &params, &patch).await?)
