@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use dhcp_template_crd::{DHCPTemplate, ObjectRefError, Reason, Type};
+use dhcp_template_crd::{DHCPTemplate, Reason, Type};
 use kube::{Api, runtime::controller::Action};
 use tracing::{Level, info, instrument};
 
@@ -10,22 +10,15 @@ use crate::{
         plan::{Plan, PlanDiffError, PlanExecutionError},
         status::DHCPTemplateStatusExt as _,
     },
-    k8s::{
-        api_ext::{ApiExtError, OwnerRefError},
-        discovery::DiscoveryError,
-    },
+    k8s::api_ext::ApiExtError,
     template::{ManifestTemplate as _, TemplateError},
 };
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub enum ReconcileError {
-    Configuration(#[from] TemplateError),
-    DiscoverError(#[from] DiscoveryError),
-    KubeError(#[from] kube::Error),
+    Template(#[from] TemplateError),
     ApiError(#[from] ApiExtError),
-    OwnerRefError(#[from] OwnerRefError),
-    ObjectRefError(#[from] ObjectRefError),
 
     PlanDiff(#[from] PlanDiffError),
     PlanExecution(#[from] PlanExecutionError),
@@ -120,8 +113,7 @@ pub fn error_policy(
     _ctx: Arc<Context>,
 ) -> Action {
     match error {
-        ReconcileError::Configuration(_) => Action::await_change(),
-        ReconcileError::KubeError(_) => Action::requeue(Duration::from_mins(1)),
+        ReconcileError::Template(_) => Action::await_change(),
         _ => Action::requeue(Duration::from_mins(5)),
     }
 }

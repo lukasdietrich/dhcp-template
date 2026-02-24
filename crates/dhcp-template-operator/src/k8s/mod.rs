@@ -1,3 +1,3 @@
 pub mod api_ext;
 pub mod discovery;
-mod labels;
+pub mod dynamic_ext;

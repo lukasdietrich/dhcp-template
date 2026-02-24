@@ -1,14 +1,19 @@
 use std::collections::BTreeSet;
 
 use dhcp_template_crd::{DHCPTemplate, DHCPTemplateStatus, ObjectRef, ObjectRefError};
-use kube::api::{DeleteParams, DynamicObject};
-use tracing::{Level, instrument, warn};
+use kube::api::DynamicObject;
+use tracing::{Level, instrument};
 
 use crate::{
     controller::context::Context,
     k8s::{
-        api_ext::{ApiExt as _, ApiExtError, OwnerExt as _, OwnerRefError},
         discovery::{Discover as _, DiscoveryError},
+        dynamic_ext::{
+            apply_ext::ApplyError,
+            delete_ext::DeleteError,
+            owner_ext::{OwnerError, OwnerExt as _},
+            safe_ext::{SafeError, SafeExt as _},
+        },
     },
 };
 
@@ -22,9 +27,9 @@ pub enum PlanDiffError {
 #[error(transparent)]
 pub enum PlanExecutionError {
     Discover(#[from] DiscoveryError),
-    Kube(#[from] kube::Error),
-    ApiExt(#[from] ApiExtError),
-    OwnerRef(#[from] OwnerRefError),
+    Owner(#[from] OwnerError),
+    Apply(#[from] SafeError<ApplyError>),
+    Delete(#[from] SafeError<DeleteError>),
 }
 
 #[derive(Debug)]
@@ -74,16 +79,7 @@ impl<'a> Plan<'a> {
     ) -> Result<(), PlanExecutionError> {
         for object_ref in &self.delete {
             let api = object_ref.discover(ctx.client()).await?;
-            let res = api.delete(&object_ref.name, &DeleteParams::default()).await;
-
-            match res {
-                Err(kube::Error::Api(status)) if status.is_not_found() => {
-                    warn!("Could not delete object.");
-                }
-                _ => {
-                    res?;
-                }
-            }
+            api.safe_delete(&object_ref.name).await?;
         }
 
         for manifest in self.manifests {
@@ -91,7 +87,7 @@ impl<'a> Plan<'a> {
             manifest.add_owner(object)?;
 
             let api = manifest.discover(ctx.client()).await?;
-            api.apply(&manifest).await?;
+            api.safe_apply(&manifest).await?;
         }
 
         Ok(())
