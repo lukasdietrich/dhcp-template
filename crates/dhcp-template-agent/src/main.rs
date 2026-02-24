@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
         .try_init()?;
 
     let config = Config::init_from_env().context("Could not parse agent config.")?;
-    debug!("{:#?}", config);
+    debug!("{config:#?}");
 
     let agent = Agent::from(config.agent);
     let provider = config.provider.try_into()?;

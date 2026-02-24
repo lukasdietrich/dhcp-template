@@ -42,7 +42,7 @@ async fn main() -> Result<()> {
         .try_init()?;
 
     let config = Config::init_from_env().context("Could not parse agent config.")?;
-    debug!("{:#?}", config);
+    debug!("{config:#?}");
 
     let state = State::from(config.state);
 

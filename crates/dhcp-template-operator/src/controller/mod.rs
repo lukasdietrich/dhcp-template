@@ -48,8 +48,8 @@ pub async fn run(state: State) -> Result<()> {
         .reconcile_all_on(state_changes)
         .run(reconcile, error_policy, ctx)
         .for_each(|res| async move {
-            if let Err(error) = res {
-                warn!("Reconciliation failed: {}", error);
+            if let Err(err) = res {
+                warn!("Reconciliation failed: {err}");
             }
         })
         .await;
