@@ -4,43 +4,44 @@ use dhcp_template_crd::{Condition, DHCPTemplate, DHCPTemplateStatus, ObjectRef, 
 use kube::Api;
 use tracing::{Level, instrument};
 
-use crate::k8s::api_ext::StatusExt;
+use crate::k8s::template_ext::status_ext::{StatusError, StatusExt};
 
-pub trait DHCPTemplateStatusExt
+pub trait DHCPTemplateStatusConditionExt
 where
     Self: StatusExt<DHCPTemplate>,
 {
-    async fn set_template_status(
+    async fn add_condition_with_objects(
         &self,
         object: &DHCPTemplate,
         objects: BTreeSet<ObjectRef>,
         reason: Reason,
         type_: Type,
         message: String,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), StatusError>;
 
-    async fn set_template_error(
+    async fn add_condition(
         &self,
         object: &DHCPTemplate,
         reason: Reason,
+        type_: Type,
         message: String,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), StatusError>;
 }
 
-impl DHCPTemplateStatusExt for Api<DHCPTemplate> {
+impl DHCPTemplateStatusConditionExt for Api<DHCPTemplate> {
     #[instrument(
         skip(self, object, objects, message),
         ret(level = Level::DEBUG),
         err(level = Level::ERROR),
     )]
-    async fn set_template_status(
+    async fn add_condition_with_objects(
         &self,
         object: &DHCPTemplate,
         objects: BTreeSet<ObjectRef>,
         reason: Reason,
         type_: Type,
         message: String,
-    ) -> Result<(), Self::Error> {
+    ) -> Result<(), StatusError> {
         self.set_status(
             object,
             DHCPTemplateStatus {
@@ -50,14 +51,14 @@ impl DHCPTemplateStatusExt for Api<DHCPTemplate> {
         )
         .await
     }
-
-    async fn set_template_error(
+    async fn add_condition(
         &self,
         object: &DHCPTemplate,
         reason: Reason,
+        type_: Type,
         message: String,
-    ) -> Result<(), Self::Error> {
-        self.set_template_status(
+    ) -> Result<(), StatusError> {
+        self.add_condition_with_objects(
             object,
             object
                 .status
@@ -65,7 +66,7 @@ impl DHCPTemplateStatusExt for Api<DHCPTemplate> {
                 .map(|status| status.objects.clone())
                 .unwrap_or_default(),
             reason,
-            Type::Error,
+            type_,
             message,
         )
         .await

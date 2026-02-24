@@ -8,9 +8,10 @@ use crate::{
     controller::{
         context::Context,
         plan::{Plan, PlanDiffError, PlanExecutionError},
-        status::DHCPTemplateStatusExt as _,
     },
-    k8s::api_ext::ApiExtError,
+    k8s::template_ext::{
+        condition_ext::DHCPTemplateStatusConditionExt as _, status_ext::StatusError,
+    },
     template::{ManifestTemplate as _, TemplateError},
 };
 
@@ -18,8 +19,7 @@ use crate::{
 #[error(transparent)]
 pub enum ReconcileError {
     Template(#[from] TemplateError),
-    ApiError(#[from] ApiExtError),
-
+    Status(#[from] StatusError),
     PlanDiff(#[from] PlanDiffError),
     PlanExecution(#[from] PlanExecutionError),
 }
@@ -46,7 +46,12 @@ pub async fn reconcile(
         Ok(manifests) => manifests,
         Err(err) => {
             let _ = api
-                .set_template_error(&object, Reason::TemplateEvaluation, format!("{err}"))
+                .add_condition(
+                    &object,
+                    Reason::TemplateEvaluation,
+                    Type::Error,
+                    format!("{err}"),
+                )
                 .await;
 
             Err(err)?
@@ -57,14 +62,19 @@ pub async fn reconcile(
         Ok(plan) => plan,
         Err(err) => {
             let _ = api
-                .set_template_error(&object, Reason::PlanningObjects, format!("{err}"))
+                .add_condition(
+                    &object,
+                    Reason::PlanningObjects,
+                    Type::Error,
+                    format!("{err}"),
+                )
                 .await;
 
             Err(err)?
         }
     };
 
-    api.set_template_status(
+    api.add_condition_with_objects(
         &object,
         plan.all(),
         Reason::Reconciliation,
@@ -75,7 +85,7 @@ pub async fn reconcile(
 
     match plan.execute(&object, &ctx).await {
         Ok(()) => {
-            api.set_template_status(
+            api.add_condition_with_objects(
                 &object,
                 plan.apply,
                 Reason::AllObjectsReady,
@@ -88,7 +98,7 @@ pub async fn reconcile(
         }
 
         Err(err) => {
-            api.set_template_status(
+            api.add_condition_with_objects(
                 &object,
                 plan.all(),
                 Reason::Reconciliation,
