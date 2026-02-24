@@ -1,0 +1,23 @@
+from docker.io/library/rust:1.93-alpine as builder
+
+    run apk add --no-cache \
+        protobuf
+
+    workdir /github.com/lukasdietrich/dhcp-template
+
+    copy crates/ ./crates
+    copy Cargo.toml Cargo.lock ./
+
+    run cargo build --release --bin dhcp-template-operator
+
+from docker.io/library/alpine:3
+
+    workdir /app
+
+    copy --from=builder /github.com/lukasdietrich/dhcp-template/target/release/dhcp-template-operator ./
+    copy LICENSE ./
+
+    label org.opencontainers.image.authors="Lukas Dietrich <lukas@lukasdietrich.com>"
+    label org.opencontainers.image.source="https://github.com/lukasdietrich/dhcp-template"
+
+    cmd [ "/app/dhcp-template-operator" ]

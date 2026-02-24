@@ -1,0 +1,8 @@
+/.git
+/target
+
+/*.lease
+/*.lease6
+/*.yaml
+
+Containerfile
