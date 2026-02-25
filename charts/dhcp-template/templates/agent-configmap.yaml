@@ -1,0 +1,12 @@
+{{- with .Values.agent }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dhcp-template.agent.fullname" $ }}
+data:
+    RUST_LOG: dhcp_template_agent={{ $.Values.global.debug | ternary "debug" "info" }}
+    DHCP_TEMPLATE__ENDPOINT: "http://{{ include "dhcp-template.operator.fullname" $ }}:{{ $.Values.operator.service.port }}"
+    DHCP_TEMPLATE__PROVIDER: dhcpcd
+    DHCP_TEMPLATE__DHCPCD_PATH: /mnt/host/var/lib/dhcpcd
+{{- end }}

@@ -1,0 +1,45 @@
+{{- with .Values.operator }}
+{{- if .serviceAccount.create -}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "dhcp-template.operator.serviceAccountName" $ }}
+  labels:
+    {{- include "dhcp-template.operator.labels" $ | nindent 4 }}
+rules:
+  - apiGroups:
+      - k8s.lukasdietrich.com
+    resources:
+      - dhcptemplates
+    verbs:
+      - watch
+      - list
+  - apiGroups:
+      - k8s.lukasdietrich.com
+    resources:
+      - dhcptemplates/status
+    verbs:
+      - get
+      - create
+      - update
+  {{- with .serviceAccount.rbac }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "dhcp-template.operator.serviceAccountName" $ }}
+  labels:
+    {{- include "dhcp-template.operator.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "dhcp-template.operator.serviceAccountName" $ }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "dhcp-template.operator.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+{{- end }}

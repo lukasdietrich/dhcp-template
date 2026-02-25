@@ -1,0 +1,19 @@
+{{- with .Values.operator }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dhcp-template.operator.fullname" $ }}
+  labels:
+    {{- include "dhcp-template.operator.labels" $ | nindent 4 }}
+spec:
+  type: {{ .service.type }}
+  ipFamilyPolicy: PreferDualStack
+  ports:
+    - port: {{ .service.port }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+  selector:
+    {{- include "dhcp-template.operator.selectorLabels" $ | nindent 4 }}
+{{- end }}

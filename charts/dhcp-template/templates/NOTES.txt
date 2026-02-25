@@ -1,0 +1,4 @@
+The agents will periodically send their current dhcp lease to the operator, when they are ready.
+The operator will reconcile templates as soon as at least one agent is ready.
+Changes to the templates or from the leases are throttled to not reconcile immediately.
+You can expect changes to be applied in less than a minute after they happen.

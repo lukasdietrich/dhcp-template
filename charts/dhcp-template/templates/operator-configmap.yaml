@@ -1,0 +1,10 @@
+{{- with .Values.operator }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dhcp-template.operator.fullname" $ }}
+data:
+    RUST_LOG: dhcp_template_operator={{ $.Values.global.debug | ternary "debug" "info" }}
+    DHCP_TEMPLATE__ADDR: "[::]:{{ .service.port }}"
+{{- end }}
