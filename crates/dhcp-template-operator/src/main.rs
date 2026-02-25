@@ -11,6 +11,7 @@ use dhcp_template_api::controller_service_server::ControllerServiceServer;
 use envconfig::Envconfig;
 use tokio::try_join;
 use tonic::transport::Server;
+use tonic_health::server::health_reporter;
 use tracing::{debug, info, level_filters::LevelFilter};
 use tracing_subscriber::{
     EnvFilter,
@@ -49,7 +50,14 @@ async fn main() -> Result<()> {
     let serve = async {
         info!("Listening on {}.", &config.addr);
 
+        let (health_reporter, health_service) = health_reporter();
+
+        health_reporter
+            .set_serving::<ControllerServiceServer<ControllerService>>()
+            .await;
+
         Server::builder()
+            .add_service(health_service)
             .add_service(ControllerServiceServer::new(ControllerService::from(
                 state.clone(),
             )))
