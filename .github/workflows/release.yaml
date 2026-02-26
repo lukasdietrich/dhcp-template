@@ -11,23 +11,18 @@ permissions:
 jobs:
   container:
     name: Publish container image
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
 
     strategy:
       matrix:
-        arch:
-          - amd64
-          - arm64
+        platform: 
+          - ubuntu-24.04
+          - ubuntu-24.04-arm64
         crate:
           - dhcp-template-operator
           - dhcp-template-agent
 
     steps:
-      - name: Install qemu dependency
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static
-
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -47,7 +42,6 @@ jobs:
         id: build-image
         with:
           tags: ${{ steps.meta.outputs.tags }}
-          archs: ${{ matrix.arch }}
           containerfiles: |
             ./crates/${{ matrix.crate }}/Containerfile
 
