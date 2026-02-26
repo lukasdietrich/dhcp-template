@@ -17,7 +17,7 @@ jobs:
       matrix:
         platform: 
           - ubuntu-24.04
-          - ubuntu-24.04-arm64
+          - ubuntu-24.04-arm
         crate:
           - dhcp-template-operator
           - dhcp-template-agent
