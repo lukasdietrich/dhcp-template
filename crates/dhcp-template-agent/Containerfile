@@ -1,4 +1,4 @@
-from docker.io/library/rust:1.94-alpine as builder
+from docker.io/library/rust:1.95-alpine as builder
 
     run apk add --no-cache \
         protobuf
