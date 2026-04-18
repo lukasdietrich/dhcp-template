@@ -89,3 +89,14 @@ Create the name of the operator service account to use
 {{- default "default" .Values.operator.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create the name of the agent service account to use
+*/}}
+{{- define "dhcp-template.agent.serviceAccountName" -}}
+{{- if .Values.agent.serviceAccount.create }}
+{{- default (include "dhcp-template.agent.fullname" .) .Values.agent.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.agent.serviceAccount.name }}
+{{- end }}
+{{- end }}
