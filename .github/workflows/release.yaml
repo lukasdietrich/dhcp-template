@@ -8,10 +8,10 @@ on:
 permissions:
   packages: write
 
-jobs:
-  env:
-    VERSION: ${{ github.ref_name }}
+env:
+  VERSION: ${{ github.ref_name }}
 
+jobs:
   container:
     name: Publish container image
     runs-on: ubuntu-latest
