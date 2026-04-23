@@ -1,3 +1,7 @@
+<p align="center">
+   <img alt="Logo of dhcp-template" src="./assets/artwork/dhcp-template.webp" height="256" /> 
+</p>
+   
 # DHCPTemplate
 
 `dhcp-template` is a Kubernetes operator written in Rust designed to bridge host-level DHCP
