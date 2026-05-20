@@ -22,7 +22,7 @@ futures-time = "=3.0.1"
 futures-util = "=0.3.32"
 itertools = "=0.14.0"
 k8s-openapi = { version = "=0.27.0", features = ["latest", "schemars"] }
-kube = "=3.0.1"
+kube = "=3.1.0"
 minijinja = "=2.19.0"
 moka = { version = "=0.12.13", features = ["future"] }
 notify = "=8.2.0"
