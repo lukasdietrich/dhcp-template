@@ -11,34 +11,34 @@ unwrap_used = "deny"
 expect_used = "deny"
 
 [workspace.dependencies]
-anyhow = "1.0.102"
-async-stream = "0.3.6"
-async-trait = "0.1.89"
+anyhow = "=1.0.102"
+async-stream = "=0.3.6"
+async-trait = "=0.1.89"
 dhcp-template-api = { path = "crates/dhcp-template-api" }
 dhcp-template-crd = { path = "crates/dhcp-template-crd" }
-dhcproto = "0.14.0"
-envconfig = "0.11.1"
-futures-time = "3.0.1"
-futures-util = "0.3.31"
-itertools = "0.14.0"
-k8s-openapi = { version = "0.27.0", features = ["latest", "schemars"] }
-kube = "3.0.1"
-minijinja = "2.15"
-moka = { version = "0.12.13", features = ["future"] }
-notify = "8.2.0"
-prost = "0.14.3"
-rand = "0.10.0"
-schemars = "1.2.1"
-serde = "1.0.228"
-serde_json = "1.0.149"
-serde_yaml = "0.9"
-strum = { version = "0.28.0", features = ["derive"] }
-thiserror = "2.0.18"
-tokio = { version = "1.49.0", features = ["full"] }
-tokio-stream = "0.1.18"
+dhcproto = "=0.14.0"
+envconfig = "=0.11.1"
+futures-time = "=3.0.1"
+futures-util = "=0.3.31"
+itertools = "=0.14.0"
+k8s-openapi = { version = "=0.27.0", features = ["latest", "schemars"] }
+kube = "=3.0.1"
+minijinja = "=2.19.0"
+moka = { version = "=0.12.13", features = ["future"] }
+notify = "=8.2.0"
+prost = "=0.14.3"
+rand = "=0.10.0"
+schemars = "=1.2.1"
+serde = "=1.0.228"
+serde_json = "=1.0.149"
+serde_yaml = "=0.9.34+deprecated"
+strum = { version = "=0.28.0", features = ["derive"] }
+thiserror = "=2.0.18"
+tokio = { version = "=1.49.0", features = ["full"] }
+tokio-stream = "=0.1.18"
 tonic = "=0.14.3"
 tonic-health = "=0.14.3"
 tonic-prost = "=0.14.3"
 tonic-prost-build = "=0.14.3"
-tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
+tracing = "=0.1.44"
+tracing-subscriber = { version = "=0.3.22", features = ["env-filter"] }
