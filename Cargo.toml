@@ -34,7 +34,7 @@ serde_json = "=1.0.149"
 serde_yaml = "=0.9.34+deprecated"
 strum = { version = "=0.28.0", features = ["derive"] }
 thiserror = "=2.0.18"
-tokio = { version = "=1.49.0", features = ["full"] }
+tokio = { version = "=1.52.3", features = ["full"] }
 tokio-stream = "=0.1.18"
 tonic = "=0.14.6"
 tonic-health = "=0.14.6"
