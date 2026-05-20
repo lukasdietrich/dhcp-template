@@ -14,5 +14,14 @@
       ],
       groupName: "tonic",
     },
+    {
+      description: "Group kube + schema packages.",
+      matchDepNames: [
+        "kube",
+        "k8s-openapi",
+        "schemars",
+      ],
+      groupName: "kube",
+    },
   ],
 }
