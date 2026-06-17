@@ -22,6 +22,8 @@
         "schemars",
       ],
       groupName: "kube",
+      separateMajorMinor: false,
+      separateMinorPatch: false
     },
   ],
 }
