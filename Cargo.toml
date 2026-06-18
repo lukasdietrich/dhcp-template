@@ -23,7 +23,7 @@ futures-util = "=0.3.32"
 itertools = "=0.15.0"
 k8s-openapi = { version = "=0.28.0", features = ["latest", "schemars"] }
 kube = "=4.0.0"
-minijinja = "=2.20.0"
+minijinja = "=2.21.0"
 moka = { version = "=0.12.15", features = ["future"] }
 notify = "=8.2.0"
 prost = "=0.14.4"
