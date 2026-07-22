@@ -29,7 +29,7 @@ notify = "=8.2.0"
 prost = "=0.14.4"
 rand = "=0.10.2"
 schemars = "=1.2.1"
-serde = "=1.0.228"
+serde = "=1.0.229"
 serde_json = "=1.0.151"
 serde_yaml = "=0.9.34+deprecated"
 strum = { version = "=0.28.0", features = ["derive"] }
