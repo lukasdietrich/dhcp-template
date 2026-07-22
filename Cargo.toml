@@ -35,7 +35,7 @@ serde_yaml = "=0.9.34+deprecated"
 strum = { version = "=0.28.0", features = ["derive"] }
 thiserror = "=2.0.19"
 tokio = { version = "=1.53.1", features = ["full"] }
-tokio-stream = "=0.1.18"
+tokio-stream = "=0.1.19"
 tonic = "=0.14.6"
 tonic-health = "=0.14.6"
 tonic-prost = "=0.14.6"
